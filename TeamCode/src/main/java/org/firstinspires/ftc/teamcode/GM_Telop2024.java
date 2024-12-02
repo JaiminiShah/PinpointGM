@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
@@ -18,15 +19,63 @@ import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 @TeleOp(name="GM_Telop2024", group="GreenMachine")  //declares the name of the class and the
 // group it is in.
 
-
-
 public class GM_Telop2024 extends OpMode {
+
+    final double ARM_TICKS_PER_DEGREE =
+            537.6 // number of encoder ticks per rotation of the bare motor
+                    * 19.2 / 1.0 // This is the exact gear ratio of the 50.9:1 Yellow Jacket gearbox
+                    * 1 // This is the external gear reduction, a 20T pinion gear that drives a 100T hub-mount gear
+                    * 1/360.0; // we want ticks per degree, not per rotation
+
+//28.7 IS ARM_TICKS_PER_DEGREE
+
+    final double ARM_COLLAPSED_INTO_ROBOT  = 0;
+    final double GROUND_POS                = 0 * ARM_TICKS_PER_DEGREE;
+    final double ARM_CLEAR_BARRIER         = 15 * ARM_TICKS_PER_DEGREE;
+    final double ARM_SCORE_SPECIMEN        = 90 * ARM_TICKS_PER_DEGREE;
+    final double LOW_BASKET                = 90 * ARM_TICKS_PER_DEGREE;
+    final double HIGH_BASKET               = 110 * ARM_TICKS_PER_DEGREE;
+    final double ARM_WINCH_ROBOT           = 10  * ARM_TICKS_PER_DEGREE;
+
+    /* Variables to store the speed the intake servo should be set at to intake, and deposit game elements.
+    final double INTAKE_COLLECT    = -1.0;
+    final double INTAKE_OFF        =  0.0;
+    final double INTAKE_DEPOSIT    =  0.5;
+
+    /* Variables to store the positions that the wrist should be set to when folding in, or folding out.
+    final double WRIST_FOLDED_IN   = 0.1667;
+    final double WRIST_FOLDED_OUT  = 0.5;
+
+    /* A number in degrees that the triggers can adjust the arm position by
+    final double FUDGE_FACTOR = 15 * ARM_TICKS_PER_DEGREE;
+
+    /* Variables that are used to set the arm to a specific position
+    double armPosition = (int)ARM_COLLAPSED_INTO_ROBOT;
+    double armPositionFudgeFactor;
+
+    final double LIFT_TICKS_PER_MM = (111132.0 / 289.0) / 120.0;
+
+    final double LIFT_COLLAPSED = 0 * LIFT_TICKS_PER_MM;
+    final double LIFT_SCORING_IN_LOW_BASKET = 0 * LIFT_TICKS_PER_MM;
+    final double LIFT_SCORING_IN_HIGH_BASKET = 480 * LIFT_TICKS_PER_MM;
+
+    double liftPosition = LIFT_COLLAPSED; */
+    
+    double armPosition = 0;
+
+    final double LIFT_COLLAPSED = 0;
+    final double MAX_ARM_POS = 1050;
 
 
     double  //declares all double variables and their values
             speedVariable = .8;
     int speedVariable1=0;
 
+double cycletime = 0;
+double looptime = 0;
+double oldtime = 0;
+
+double liftPosition = LIFT_COLLAPSED;
 
 
     /*
@@ -37,19 +86,22 @@ public class GM_Telop2024 extends OpMode {
             rearLeft = null,
             rearRight = null,
             frontLeft = null,
-            frontRight = null;
+            frontRight = null,
+            armRotator = null,
+            armSlide = null;
+
           //  liftMotor = null;
-   // Servo intake1;
-   // Servo flapper;
+   // servo names/declarations
+Servo
+    wrist = null;
+    // Continuous rotation servo
+    CRServo
+    intake = null;
+
 
     // pixelArm = null;
     // double hangerpos = 0.0;
 
-    // final double ARM_TICKS_PER_DEGREE =
-    //    28 // number of encoder ticks per rotation of the bare motor
-    //              * 250047.0 / 4913.0 // This is the exact gear ratio of the 50.9:1 Yellow Jacket gearbox
-    //             * 100.0 / 20.0 // This is the external gear reduction, a 20T pinion gear that drives a 100T hub-mount gear
-    //              * 1 / 360.0; // we want ticks per degree, not per rotation
     /* These constants hold the position that the arm is commanded to run to.
    These are relative to where the arm was located when you start the OpMode. So make sure the
    arm is reset to collapsed inside the robot before you start the program.
@@ -96,17 +148,23 @@ public class GM_Telop2024 extends OpMode {
 
         // these are our motors and what they are called
         rearLeft = hardwareMap.get(DcMotorEx.class, "rearLeft");
-
         rearRight = hardwareMap.get(DcMotorEx.class, "rearRight");
         frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
         frontRight = hardwareMap.get(DcMotorEx.class, "frontRight");
+        armRotator = hardwareMap.get(DcMotorEx.class, "armWrist");
+        armSlide = hardwareMap.get(DcMotorEx.class, "armSlide");
         //liftMotor = hardwareMap.get(DcMotorEx.class, "liftMotor");
+// these are our servos and what they are called
+        wrist = hardwareMap.get(Servo.class, "wrist");
+        intake = hardwareMap.get(CRServo.class, "intake");
 
 //Direction?
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
         frontRight.setDirection(DcMotor.Direction.REVERSE);
         rearLeft.setDirection(DcMotor.Direction.FORWARD);
         rearRight.setDirection(DcMotor.Direction.FORWARD);
+        armRotator.setDirection(DcMotor.Direction.FORWARD);
+        armSlide.setDirection(DcMotor.Direction.FORWARD);
       //  liftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         // pixelArm.setDirection(DcMotor.Direction.REVERSE);
 
@@ -114,12 +172,19 @@ public class GM_Telop2024 extends OpMode {
         frontRight.setPower(0);
         rearLeft.setPower(0);
         rearRight.setPower(0);
+        armRotator.setPower(0);
+        armSlide.setPower(0);
        // liftMotor.setPower(0);
+// set position for servos
+        wrist.setPosition(0);
+        intake.setPower(0);
 
         frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        armRotator.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        armSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
        // liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         //Setting motors to run without encoders
@@ -127,6 +192,8 @@ public class GM_Telop2024 extends OpMode {
         frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rearLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rearRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        armRotator.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        armSlide.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
       //  liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         /*This sets the maximum current that the control hub will apply to the arm before throwing a flag */
@@ -169,6 +236,13 @@ public class GM_Telop2024 extends OpMode {
         //                        GamePad One
         //==========================================================
 
+        //armRotator manual lifting
+        if(gamepad1.right_trigger>.1){
+        armRotator.setPower(.25);}
+
+        if(gamepad1.left_trigger>.1){
+            armRotator.setPower(-.25);
+        }
         //Controls Drive Train
 
         float FLspeed = -gamepad1.left_stick_y + gamepad1.left_stick_x;
@@ -218,31 +292,56 @@ public class GM_Telop2024 extends OpMode {
             to start collecting. So it moves the armPosition to the ARM_COLLECT position,
             it folds out the wrist to make sure it is in the correct orientation to intake, and it
             turns the intake on to the COLLECT mode.*/
-       /* if (gamepad2.right_bumper){
-            liftPosition += 2800 * cycletime;
-        }
-        else if (gamepad2.left_bumper){
-            liftPosition -= 2800 * cycletime;
-        }*/
-        /* Program for slides to raise up and down */
-      /*  if (gamepad2.right_bumper  && liftpos>minliftposition) {
-            liftpos -= liftposincrement;
-        }
-        if(gamepad2.left_bumper && liftpos<maxliftposition){
-            liftpos+=liftposincrement;
-        }*/
-        /*here we check to see if the lift is trying to go higher than the maximum extension.
-         *if it is, we set the variable to the max.
-         */
-        /*if (liftPosition > LIFT_SCORING_IN_HIGH_BASKET){
-            liftPosition = LIFT_SCORING_IN_HIGH_BASKET;
-        }*/
-        //same as above, we see if the lift is trying to go below 0, and if it is, we set it to 0.
-       /* if (liftPosition < 0){
-            liftPosition = 0;
-        }*/
 
-     //   liftMotor.setTargetPosition((int) (liftpos));
+        //==========================================================
+        //                        GamePad Two
+        //==========================================================
+
+        if (gamepad2.left_bumper) {
+            intake.setPower(0.5);
+        }
+
+        if (gamepad2.right_bumper) {
+            intake.setPower(-0.5);
+        }
+
+        //arm slide
+        if (gamepad2.right_trigger > .1) {
+            liftPosition += 350 * cycletime;
+        } else if (gamepad2.left_trigger > .1) {
+            liftPosition -= 350 * cycletime;
+        }
+
+        if (liftPosition > MAX_ARM_POS){
+            liftPosition = MAX_ARM_POS;
+        }
+
+        if (liftPosition < 0){
+            liftPosition = 0;
+        }
+
+        armSlide.setTargetPosition((int) (liftPosition));
+
+        ((DcMotorEx) armSlide).setVelocity(200);
+        armSlide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        if (gamepad2.a) {
+            armPosition = GROUND_POS;
+            wrist.setPosition(.3);
+        }
+
+        if (gamepad2.b) {
+            armPosition = LOW_BASKET;
+            wrist.setPosition(.5);
+        }
+
+        if (gamepad2.y) {
+            armPosition = HIGH_BASKET;
+            wrist.setPosition(.5);
+
+        }
+
+        //   liftMotor.setTargetPosition((int) (liftpos));
        // liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         //((DcMotorEx) liftMotor).setVelocity(2100);
        // liftMotor.setPower(0.7);
@@ -320,6 +419,11 @@ public class GM_Telop2024 extends OpMode {
             This is a.... weird, way to set the position of a "closed loop" device. The lift is run
             with encoders. So it kno*/
 
+        //runtime stuff
+        looptime = getRuntime();
+        cycletime = looptime-oldtime;
+        oldtime = looptime;
+
         //==========================================================//
         //                        Telemetry                           //
         //==========================================================//
@@ -348,14 +452,14 @@ public class GM_Telop2024 extends OpMode {
         telemetry.update();
 
     }
-   /* public void telemetrylift(){
-        telemetry.addData("lift variable", liftpos);
-        telemetry.addData("Lift Target Position",liftMotor.getTargetPosition());
-        telemetry.addData("lift current position", liftMotor.getCurrentPosition());
-        telemetry.addData("liftMotor Current:",(liftMotor.getCurrent(CurrentUnit.AMPS)));
+    public void telemetrylift(){
+        telemetry.addData("lift variable", MAX_ARM_POS);
+        telemetry.addData("Lift Target Position",armSlide.getTargetPosition());
+        telemetry.addData("lift current position", armSlide.getCurrentPosition());
+        telemetry.addData("liftMotor Current:",(armSlide.getCurrent(CurrentUnit.AMPS)));
         telemetry.update();
 
-    }*/
+    }
 
 
 
@@ -368,7 +472,8 @@ public class GM_Telop2024 extends OpMode {
         rearLeft.setPower(0);
         frontRight.setPower(0);
         rearRight.setPower(0);
-       // liftMotor.setPower(0);
+        armSlide.setPower(0);
+        armRotator.setPower(0);
     }
     // pixelArm.setTargetPosition(pixelArm.getCurrentPosition());
 
