@@ -88,6 +88,7 @@ double liftPosition = LIFT_COLLAPSED;
             frontLeft = null,
             frontRight = null,
             armRotator = null,
+            armRotator2 = null,
             armSlide = null;
 
           //  liftMotor = null;
@@ -151,7 +152,8 @@ Servo
         rearRight = hardwareMap.get(DcMotorEx.class, "rearRight");
         frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
         frontRight = hardwareMap.get(DcMotorEx.class, "frontRight");
-        armRotator = hardwareMap.get(DcMotorEx.class, "armWrist");
+        armRotator = hardwareMap.get(DcMotorEx.class, "armRotator");
+        armRotator2 = hardwareMap.get(DcMotorEx.class, "armRotator2");
         armSlide = hardwareMap.get(DcMotorEx.class, "armSlide");
         //liftMotor = hardwareMap.get(DcMotorEx.class, "liftMotor");
 // these are our servos and what they are called
@@ -164,6 +166,7 @@ Servo
         rearLeft.setDirection(DcMotor.Direction.FORWARD);
         rearRight.setDirection(DcMotor.Direction.FORWARD);
         armRotator.setDirection(DcMotor.Direction.FORWARD);
+        armRotator2.setDirection(DcMotor.Direction.FORWARD);
         armSlide.setDirection(DcMotor.Direction.FORWARD);
       //  liftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         // pixelArm.setDirection(DcMotor.Direction.REVERSE);
@@ -173,8 +176,11 @@ Servo
         rearLeft.setPower(0);
         rearRight.setPower(0);
         armRotator.setPower(0);
+        armRotator2.setPower(0);
         armSlide.setPower(0);
        // liftMotor.setPower(0);
+
+
 // set position for servos
         wrist.setPosition(0);
         intake.setPower(0);
@@ -184,6 +190,7 @@ Servo
         rearLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         armRotator.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        armRotator2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         armSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
        // liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
@@ -193,6 +200,7 @@ Servo
         rearLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rearRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         armRotator.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        armRotator2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         armSlide.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
       //  liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
@@ -238,10 +246,13 @@ Servo
 
         //armRotator manual lifting
         if(gamepad1.right_trigger>.1){
-        armRotator.setPower(.25);}
+        armRotator.setPower(.25);
+        armRotator2.setPower(.25);
+        }
 
-        if(gamepad1.left_trigger>.1){
+        else if(gamepad1.left_trigger>.1){
             armRotator.setPower(-.25);
+            armRotator2.setPower(-.25);
         }
         //Controls Drive Train
 
