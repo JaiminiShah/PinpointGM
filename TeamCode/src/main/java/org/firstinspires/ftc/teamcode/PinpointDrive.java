@@ -2,11 +2,16 @@ package org.firstinspires.ftc.teamcode;
 
 
 
+import static com.qualcomm.hardware.rev.RevHubOrientationOnRobot.zyxOrientation;
+
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.ftc.FlightRecorder;
 import com.acmerobotics.roadrunner.ftc.GoBildaPinpointDriver;
 import com.acmerobotics.roadrunner.ftc.GoBildaPinpointDriverRR;
+import com.acmerobotics.roadrunner.ftc.LazyImu;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -20,8 +25,13 @@ import org.firstinspires.ftc.teamcode.messages.PoseMessage;
  * Portions of this code made and released under the MIT License by Gobilda (Base 10 Assets, LLC)
  * Unless otherwise noted, comments are from Gobilda
  */
+@Config
 public class PinpointDrive extends MecanumDrive {
     public static class Params {
+        /*
+       Set this to the name that your Pinpoint is configured as in your hardware config.
+        */
+        public String pinpointDeviceName = "pinpoint";
         /*
         Set the odometry pod positions relative to the point that the odometry computer tracks around.
         The X pod offset refers to how far sideways from the tracking point the
@@ -54,6 +64,14 @@ public class PinpointDrive extends MecanumDrive {
          */
         public GoBildaPinpointDriver.EncoderDirection xDirection = GoBildaPinpointDriver.EncoderDirection.FORWARD;
         public GoBildaPinpointDriver.EncoderDirection yDirection = GoBildaPinpointDriver.EncoderDirection.FORWARD;
+        /*
+       Use the pinpoint IMU for tuning
+       If true, overrides any IMU setting in MecanumDrive and uses exclusively Pinpoint for tuning
+       You can also use the pinpoint directly in MecanumDrive if this doesn't work for some reason;
+        replace "imu" with "pinpoint" or whatever your pinpoint is called in config.
+        Note: Pinpoint IMU is always used for base localization
+        */
+        public boolean usePinpointIMUForTuning = true;
     }
 
     public static Params PARAMS = new Params();
@@ -63,7 +81,10 @@ public class PinpointDrive extends MecanumDrive {
     public PinpointDrive(HardwareMap hardwareMap, Pose2d pose) {
         super(hardwareMap, pose);
         FlightRecorder.write("PINPOINT_PARAMS",PARAMS);
-        pinpoint = hardwareMap.get(GoBildaPinpointDriverRR.class,"pinpoint");
+        pinpoint = hardwareMap.get(GoBildaPinpointDriverRR.class,PARAMS.pinpointDeviceName);
+        if (PARAMS.usePinpointIMUForTuning) {
+            lazyImu = new LazyImu(hardwareMap, PARAMS.pinpointDeviceName, new RevHubOrientationOnRobot(zyxOrientation(0, 0, 0)));
+        }
 
         // RR localizer note: don't love this conversion (change driver?)
         pinpoint.setOffsets(DistanceUnit.MM.fromInches(PARAMS.xOffset), DistanceUnit.MM.fromInches(PARAMS.yOffset));
