@@ -4,7 +4,6 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -12,9 +11,19 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.Range;
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.roadrunner.ftc.Encoder;
+import com.acmerobotics.roadrunner.ftc.OverflowEncoder;
+import com.acmerobotics.roadrunner.ftc.RawEncoder;
+import com.arcrobotics.ftclib.controller.PIDFController;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
+import org.firstinspires.ftc.teamcode.MecanumDrive;
 
+@Config
 
 @TeleOp(name="GM_Telop2024", group="GreenMachine")  // Dares the name of the class and the group it is in.
 
@@ -37,7 +46,7 @@ public class GM_Telop2024 extends OpMode {
     final double LOW_BASKET                = 90 * ARM_TICKS_PER_DEGREE;
     final double HIGH_BASKET               = 110 * ARM_TICKS_PER_DEGREE;
     final double ARM_WINCH_ROBOT           = 10  * ARM_TICKS_PER_DEGREE;
-    
+
     double armPosition = 0;
 
     final double LIFT_COLLAPSED = 0;
@@ -48,12 +57,27 @@ public class GM_Telop2024 extends OpMode {
             speedVariable = .8;
     int speedVariable1=0;
 
-double cycletime = 0;
-double looptime = 0;
-double oldtime = 0;
+    double cycletime = 0;
+    double looptime = 0;
+    double oldtime = 0;
 
-double liftPosition = LIFT_COLLAPSED;
+    double liftPosition = LIFT_COLLAPSED;
 
+    private final double zeroOffset = 90;
+
+    private PIDFController pidController=null;
+    public static  double kp=0.77;//0.77;
+    public static  double ki=0.003;//0.003;
+    public static  double kd=0.004;//0.004;
+
+    public static double kf=0.03;//0.03;
+
+    public static int targetMotorPosition=0;
+
+    //public static int targetDeg=0;
+    private final double ticksPerDegree=1425 / 360;
+    public  Encoder armMotorEncoder;
+    DcMotorEx armMotor = null;
 
     /*
      * Code will run ONCE when the driver hits INIT
@@ -69,12 +93,12 @@ double liftPosition = LIFT_COLLAPSED;
             armSlide = null;
 
     // servo names/declarations
-Servo
-    wrist = null;
+    Servo
+            wrist = null;
 
     // Continuous rotation servo
     CRServo
-    intake = null;
+            intake = null;
 
 
     HardwareMap hwMap = null;
@@ -82,6 +106,25 @@ Servo
 
     @Override
     public void init() { //initialization class to be used at start of tele-op
+
+        //PIDF implementation
+        pidController = new PIDFController(kp, ki,kd, kf);
+        pidController.setPIDF(kp,ki,kd, kf);
+        int armPos =  armRotator.getCurrentPosition();
+        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        double pid= pidController.calculate(armPos, targetMotorPosition);
+// double feedforward = Math.cos(Math.toRadians(targetMotorPosition / ticksPerDegree)) * kf;
+        double feedforward = Math.sin(Math.toRadians(armPos / ticksPerDegree + zeroOffset )) * kf;
+        double armPositionInDeg = armPos/ticksPerDegree + zeroOffset;
+        double power = pid * feedforward;
+        armRotator.setPower(power);
+        armRotator2.setPower(power);
+
+        telemetry.addData("current pos", armPos);
+        telemetry.addData("Arm position in degrees ", armPositionInDeg);
+        //telemetry.addData("target", targetDeg);
+
+        telemetry.update();
 
         // Motor Names
         rearLeft = hardwareMap.get(DcMotorEx.class, "rearLeft");
@@ -158,10 +201,11 @@ Servo
     /*
      * This code will run ONCE when the driver hits PLAY
      */
+
     @Override
     public void start() {
-       // liftMotor.setTargetPosition(0);
-      //  liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        // liftMotor.setTargetPosition(0);
+        //  liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         //liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         //telemetrylift();
 
@@ -170,6 +214,7 @@ Servo
     /*
      * Code will run REPEATEDLY after the driver hits PLAY but before they hit STOP
      */
+
     @Override
     public void loop() {
 
@@ -181,8 +226,8 @@ Servo
 
         // armRotator manual lifting mostly for testing or as a last resort
         if(gamepad1.right_trigger>.1){
-        armRotator.setPower(.25);
-        armRotator2.setPower(.25);
+            armRotator.setPower(.25);
+            armRotator2.setPower(.25);
         }
 
         else if(gamepad1.left_trigger>.1){
@@ -212,10 +257,12 @@ Servo
          /* Before starting the armMotor. We'll make sure the TargetPosition is set to 0.
         Then we'll set the RunMode to RUN_TO_POSITION. And we'll ask it to stop and reset encoder.
         If you do not have the encoder plugged into this motor, it will not run in this code. */
-    /*    armMotor.setTargetPosition(speedVariable1);
+    /*
+        armMotor.setTargetPosition(speedVariable1);
         armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         armMotor.setPower(0.8);
-        armMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);*/
+        armMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+    */
 
 
         /* Send telemetry message to signify robot waiting */
@@ -292,9 +339,9 @@ Servo
 
 
         //   liftMotor.setTargetPosition((int) (liftpos));
-       // liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        // liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         //((DcMotorEx) liftMotor).setVelocity(2100);
-       // liftMotor.setPower(0.7);
+        // liftMotor.setPower(0.7);
         //liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         //  if (gamepad1.a) {
