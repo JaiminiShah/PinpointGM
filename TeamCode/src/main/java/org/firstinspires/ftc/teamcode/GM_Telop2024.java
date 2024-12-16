@@ -62,6 +62,7 @@ public class GM_Telop2024 extends OpMode {
     double oldtime = 0;
 
     double liftPosition = LIFT_COLLAPSED;
+    double hangPosition = 0;
 
     private final double zeroOffset = 90;
 
@@ -90,7 +91,8 @@ public class GM_Telop2024 extends OpMode {
             frontRight = null,
             armRotator = null,
             armRotator2 = null,
-            armSlide = null;
+            armSlide = null,
+            hanger = null;
 
     // servo names/declarations
     Servo
@@ -134,6 +136,7 @@ public class GM_Telop2024 extends OpMode {
         armRotator = hardwareMap.get(DcMotorEx.class, "armRotator");
         armRotator2 = hardwareMap.get(DcMotorEx.class, "armRotator2");
         armSlide = hardwareMap.get(DcMotorEx.class, "armSlide");
+     //   hanger = hardwareMap.get(DcMotorEx.class, "hanger");
         //liftMotor = hardwareMap.get(DcMotorEx.class, "liftMotor");
 
         // Servo Names
@@ -148,6 +151,7 @@ public class GM_Telop2024 extends OpMode {
         armRotator.setDirection(DcMotor.Direction.FORWARD);
         armRotator2.setDirection(DcMotor.Direction.FORWARD);
         armSlide.setDirection(DcMotor.Direction.FORWARD);
+        hanger.setDirection(DcMotor.Direction.FORWARD);
 
         // Sets up motors
         frontLeft.setPower(0);
@@ -158,12 +162,12 @@ public class GM_Telop2024 extends OpMode {
         armRotator2.setPower(0);
         armSlide.setPower(0);
         intake.setPower(0);
-
+        hanger.setPower(0);
 
         // Sets position for servos
         wrist.setPosition(0);
 
-        // Hi thanks for reading this comments I worked really hard on them :)
+        // Hi thanks for reading these comments I worked really hard on them :)
         frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -171,7 +175,7 @@ public class GM_Telop2024 extends OpMode {
         armRotator.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         armRotator2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         armSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
+        hanger.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         //Setting motors to run without encoders
         frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -181,7 +185,7 @@ public class GM_Telop2024 extends OpMode {
         armRotator.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         armRotator2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         armSlide.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
+        hanger.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         //this will send a telemetry message to signify robot waiting;
         telemetry.addLine("AUTOBOTS ROLL OUT");
@@ -336,6 +340,17 @@ public class GM_Telop2024 extends OpMode {
 
         }
 
+        if (gamepad2.dpad_up)
+            hangPosition += 350 * cycletime;
+
+        else if (gamepad2.dpad_down) {
+            hangPosition -= 350 * cycletime;
+        }
+
+        hanger.setTargetPosition((int) (hangPosition));
+
+        ((DcMotorEx) hanger).setVelocity(200);
+        hanger.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
         //   liftMotor.setTargetPosition((int) (liftpos));
@@ -472,6 +487,8 @@ public class GM_Telop2024 extends OpMode {
         rearRight.setPower(0);
         armSlide.setPower(0);
         armRotator.setPower(0);
+        armRotator2.setPower(0);
+        hanger.setPower(0);
     }
     // pixelArm.setTargetPosition(pixelArm.getCurrentPosition());
 
