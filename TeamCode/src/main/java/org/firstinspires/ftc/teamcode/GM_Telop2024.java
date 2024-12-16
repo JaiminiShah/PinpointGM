@@ -60,7 +60,7 @@ public class GM_Telop2024 extends OpMode {
     double cycletime = 0;
     double looptime = 0;
     double oldtime = 0;
-// hi
+
     double liftPosition = LIFT_COLLAPSED;
 
     private final double zeroOffset = 90;
