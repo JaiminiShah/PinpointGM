@@ -35,7 +35,7 @@ public class GM_Telop2024 extends OpMode {
                     * 1 // This is the external gear reduction, a 20T pinion gear that drives a 100T hub-mount gear
                     * 1/360.0; // we want ticks per degree, not per rotation
 
-// 28.7 IS ARM_TICKS_PER_DEGREE
+// 28.7 IS ARM_TICKS_PER_DEGREE :)
 
 
     // Positions for the arms
