@@ -94,7 +94,7 @@ public class GM_Telop2024 extends OpMode {
             armSlide = null,
             hanger = null;
 
-    // servo names/declarations
+    // Servo names/declarations
     Servo
             wrist = null;
 
