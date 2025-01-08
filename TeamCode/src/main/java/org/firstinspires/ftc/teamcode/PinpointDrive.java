@@ -29,8 +29,8 @@ import org.firstinspires.ftc.teamcode.messages.PoseMessage;
 public class PinpointDrive extends MecanumDrive {
     public static class Params {
         /*
-       Set this to the name that your Pinpoint is configured as in your hardware config.
-        */
+        Set this to the name that your Pinpoint is configured as in your hardware config.
+         */
         public String pinpointDeviceName = "pinpoint";
         /*
         Set the odometry pod positions relative to the point that the odometry computer tracks around.
@@ -64,13 +64,14 @@ public class PinpointDrive extends MecanumDrive {
          */
         public GoBildaPinpointDriver.EncoderDirection xDirection = GoBildaPinpointDriver.EncoderDirection.FORWARD;
         public GoBildaPinpointDriver.EncoderDirection yDirection = GoBildaPinpointDriver.EncoderDirection.FORWARD;
+
         /*
-       Use the pinpoint IMU for tuning
-       If true, overrides any IMU setting in MecanumDrive and uses exclusively Pinpoint for tuning
-       You can also use the pinpoint directly in MecanumDrive if this doesn't work for some reason;
-        replace "imu" with "pinpoint" or whatever your pinpoint is called in config.
-        Note: Pinpoint IMU is always used for base localization
-        */
+        Use the pinpoint IMU for tuning
+        If true, overrides any IMU setting in MecanumDrive and uses exclusively Pinpoint for tuning
+        You can also use the pinpoint directly in MecanumDrive if this doesn't work for some reason;
+         replace "imu" with "pinpoint" or whatever your pinpoint is called in config.
+         Note: Pinpoint IMU is always used for base localization
+         */
         public boolean usePinpointIMUForTuning = true;
     }
 
@@ -82,6 +83,7 @@ public class PinpointDrive extends MecanumDrive {
         super(hardwareMap, pose);
         FlightRecorder.write("PINPOINT_PARAMS",PARAMS);
         pinpoint = hardwareMap.get(GoBildaPinpointDriverRR.class,PARAMS.pinpointDeviceName);
+
         if (PARAMS.usePinpointIMUForTuning) {
             lazyImu = new LazyImu(hardwareMap, PARAMS.pinpointDeviceName, new RevHubOrientationOnRobot(zyxOrientation(0, 0, 0)));
         }
@@ -118,7 +120,7 @@ public class PinpointDrive extends MecanumDrive {
         if (lastPinpointPose != pose) {
             // RR localizer note:
             // Something else is modifying our pose (likely for relocalization),
-            // so we override otos pose with the new pose.
+            // so we override the sensor's pose with the new pose.
             // This could potentially cause up to 1 loop worth of drift.
             // I don't like this solution at all, but it preserves compatibility.
             // The only alternative is to add getter and setters, but that breaks compat.
