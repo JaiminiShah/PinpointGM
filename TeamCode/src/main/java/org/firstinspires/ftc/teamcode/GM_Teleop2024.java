@@ -59,8 +59,16 @@ public class GM_Teleop2024 extends OpMode {
 
     private final double zeroOffset = 90;
 
+    //   private PIDFController pidController=null;
+    public static  double kp=0.77;//0.77;
+    public static  double ki=0.003;//0.003;
+    public static  double kd=0.004;//0.004;
+
+    public static double kf=0.03;//0.03;
+
     public static int targetMotorPosition=0;
 
+    //public static int targetDeg=0;
     private final double ticksPerDegree=1425 / 360;
     //   public  Encoder armMotorEncoder;
     DcMotorEx armMotor = null;
@@ -94,6 +102,23 @@ public class GM_Teleop2024 extends OpMode {
 
     @Override
     public void init() { //initialization class to be used at start of tele-op
+
+        //PIDF implementation
+  /*      pidController = new PIDFController(kp, ki,kd, kf);
+        pidController.setPIDF(kp,ki,kd, kf);
+        int armPos =  armRotator.getCurrentPosition();
+        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        double pid= pidController.calculate(armPos, targetMotorPosition);
+// double feedforward = Math.cos(Math.toRadians(targetMotorPosition / ticksPerDegree)) * kf;
+        double feedforward = Math.sin(Math.toRadians(armPos / ticksPerDegree + zeroOffset )) * kf;
+        double armPositionInDeg = armPos/ticksPerDegree + zeroOffset;
+        double power = pid * feedforward;
+        armRotator.setPower(power);
+        armRotator2.setPower(power);
+
+        telemetry.addData("current pos", armPos);
+        telemetry.addData("Arm position in degrees ", armPositionInDeg);
+        //telemetry.addData("target", targetDeg); */
 
         telemetry.update();
 
@@ -192,6 +217,17 @@ public class GM_Teleop2024 extends OpMode {
         //                        GamePad One                       \\
         //==========================================================\\
 
+
+        // armRotator manual lifting mostly for testing or as a last resort
+        if(gamepad1.right_trigger>.1){
+            armRotator.setPower(.75);
+            armRotator2.setPower(.75);
+        }
+
+        else if(gamepad1.left_trigger>.1){
+            armRotator.setPower(-.75);
+            armRotator2.setPower(-.75);
+        }
 
 
         // Drive Train controls
