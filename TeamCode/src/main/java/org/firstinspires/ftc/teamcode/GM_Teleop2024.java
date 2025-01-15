@@ -22,33 +22,39 @@ import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 public class GM_Teleop2024 extends OpMode {
 
     final double ARM_TICKS_PER_DEGREE =
-            25 // Number of encoder ticks per rotation of the bare motor
+            28 // Number of encoder ticks per rotation of the bare motor
                     * 250047.0 / 4913 // This is the exact gear ratio of the 50.9:1 Yellow Jacket gearbox
                     * 100/20 // This is the external gear reduction, a 20T pinion gear that drives a 100T hub-mount gear
                     * 1/360.0; // we want ticks per degree, not per rotation
 
-// 17.67 IS ARM_TICKS_PER_DEGREE :)
+// 19.79 IS ARM_TICKS_PER_DEGREE :)
 
 
     // Positions for the arms
     final double ARM_COLLAPSED_INTO_ROBOT  = 0;
     final double GROUND_POS                = 0 * ARM_TICKS_PER_DEGREE;
-    final double ARM_CLEAR_BARRIER         = 15 * ARM_TICKS_PER_DEGREE;
+    final double ARM_CLEAR_BARRIER         = 7 * ARM_TICKS_PER_DEGREE;
     final double ARM_SCORE_SPECIMEN        = 90 * ARM_TICKS_PER_DEGREE;
-    final double LOW_BASKET                = 50.9337861 * ARM_TICKS_PER_DEGREE;
-    final double HIGH_BASKET               = 101.867572 * ARM_TICKS_PER_DEGREE;
+    final double LOW_BASKET                = 29 * ARM_TICKS_PER_DEGREE;
+    final double HIGH_BASKET               = 27 * ARM_TICKS_PER_DEGREE;
     final double ARM_WINCH_ROBOT           = 10  * ARM_TICKS_PER_DEGREE;
+    final double FUDGE_FACTOR              = 5 * ARM_TICKS_PER_DEGREE;
+    final double liftIncrement             = 23.0;
+
 
     double armPosition = 0;
 
     final double LIFT_COLLAPSED = 0;
-    final double MAX_ARM_POS = 3000;
+    final double MAX_ARM_POS = 2000;
 
 
 
     double  // Declares all double variables and their values
             speedVariable = .8;
     int speedVariable1=0;
+
+    double armPositionFudgeFactor;
+    double armLiftComp = 0;
 
     double cycletime = 0;
     double looptime = 0;
@@ -138,13 +144,13 @@ public class GM_Teleop2024 extends OpMode {
         intake = hardwareMap.get(CRServo.class, "intake");
 
         //Direction of motors
-        frontLeft.setDirection(DcMotor.Direction.FORWARD);
-        frontRight.setDirection(DcMotor.Direction.FORWARD);
-        rearLeft.setDirection(DcMotor.Direction.REVERSE);
-        rearRight.setDirection(DcMotor.Direction.REVERSE);
-        armRotator.setDirection(DcMotor.Direction.REVERSE);
-        armRotator2.setDirection(DcMotor.Direction.FORWARD);
-        armSlide.setDirection(DcMotor.Direction.FORWARD);
+        frontLeft.setDirection(DcMotor.Direction.REVERSE);
+        frontRight.setDirection(DcMotor.Direction.REVERSE);
+        rearLeft.setDirection(DcMotor.Direction.FORWARD);
+        rearRight.setDirection(DcMotor.Direction.FORWARD);
+        armRotator.setDirection(DcMotor.Direction.FORWARD);
+        armRotator2.setDirection(DcMotor.Direction.REVERSE);
+        armSlide.setDirection(DcMotor.Direction.REVERSE);
         //   hanger.setDirection(DcMotor.Direction.FORWARD);
 
         // Sets up motors
@@ -212,6 +218,7 @@ public class GM_Teleop2024 extends OpMode {
     @Override
     public void loop() {
 
+        armPositionFudgeFactor = FUDGE_FACTOR * (gamepad2.right_trigger + (-gamepad2.left_trigger));
 
         //==========================================================\\
         //                        GamePad One                       \\
@@ -256,7 +263,7 @@ public class GM_Teleop2024 extends OpMode {
         // Adjust the orientation parameters to match your robot
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
                 RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                RevHubOrientationOnRobot.UsbFacingDirection.LEFT));
+                RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD));
         // Without this, the REV Hub's orientation is assumed to be logo up / USB forward
         imu.initialize(parameters);
 
@@ -277,13 +284,33 @@ public class GM_Teleop2024 extends OpMode {
             intake.setPower(0);
         }
 
+
+   /*
         // Controls for arm slide
         if (gamepad2.right_trigger > .1) {
-            liftPosition += 350 * cycletime;
+            liftPosition += 500 * cycletime;
         }
 
         else if (gamepad2.left_trigger > .1) {
-            liftPosition -= 350 * cycletime;
+            liftPosition -= 500 * cycletime;
+        }
+    */
+
+        if (armPosition < 25 * ARM_TICKS_PER_DEGREE){
+            armLiftComp = (0.7 * liftPosition);
+        }
+        else{
+            armLiftComp = 0;
+        }
+
+
+        // Controls for arm slide (real)
+        if (gamepad2.left_trigger > .1 && liftPosition > 0) {
+            liftPosition-=liftIncrement;
+        }
+
+        if (gamepad2.right_trigger > .1 && liftPosition<2000) {
+            liftPosition+=liftIncrement;
         }
 
         // Makes sure the lift does not go beyond parameters
@@ -298,12 +325,12 @@ public class GM_Teleop2024 extends OpMode {
         // Moves slide to the position
         armSlide.setTargetPosition((int) (liftPosition));
 
-        ((DcMotorEx) armSlide).setVelocity(200);
+        ((DcMotorEx) armSlide).setVelocity(400);
         armSlide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         // Controls for armRotator
         if (gamepad2.a) {
-            armPosition = GROUND_POS;
+            armPosition = ARM_CLEAR_BARRIER;
             wrist.setPosition(.7);
         }
 
@@ -317,15 +344,22 @@ public class GM_Teleop2024 extends OpMode {
             wrist.setPosition(.5);
         }
 
-        armRotator.setTargetPosition((int) (armPosition));
+        else if (gamepad2.x) {
+            armPosition = GROUND_POS;
+            wrist.setPosition(.7);
+        }
+    if (runTime.seconds()<20) {
+        armRotator.setTargetPosition((int) (armPosition + armPositionFudgeFactor + armLiftComp));
 
-        ((DcMotorEx) armRotator).setVelocity(200);
+        ((DcMotorEx) armRotator).setVelocity(700);
         armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        armRotator2.setTargetPosition((int) (armPosition));
+        armRotator2.setTargetPosition((int) (armPosition + armPositionFudgeFactor + armLiftComp));
 
-        ((DcMotorEx) armRotator2).setVelocity(200);
+        ((DcMotorEx) armRotator2).setVelocity(700);
         armRotator2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        runTime.reset();
+    }
 
 
         if (gamepad2.dpad_up)
@@ -334,13 +368,6 @@ public class GM_Teleop2024 extends OpMode {
         else if (gamepad2.dpad_down) {
             hangPosition -= 350 * cycletime;
         }
-
- /*       if (gamepad2.dpad_left)
-            wrist.setPosition();
-
-        else if (gamepad2.dpad_right) {
-            hangPosition -= 350 * cycletime;
-        } */
 
         //runtime stuff
         looptime = getRuntime();
@@ -352,12 +379,13 @@ public class GM_Teleop2024 extends OpMode {
         //==========================================================\\
 
         telemetrymotorprint();
-        //telemetrylift();
+        telemetrylift();
 
 
     }
     public void telemetrymotorprint(){
         telemetry.clear();
+        telemetry.addData("Cycle time: ", cycletime);
         telemetry.addData("Drive Train Speed: " , speedVariable);
         telemetry.addData("BRMotor2", "Position : %2d, Power : %.2f", rearRight.getCurrentPosition(), rearRight.getPower());
         telemetry.addData("FRMotor2", "Position : %2d, Power : %.2f", frontRight.getCurrentPosition(), frontRight.getPower());
@@ -372,7 +400,8 @@ public class GM_Teleop2024 extends OpMode {
                 .addData("y", gamepad1.right_stick_y);
 
         telemetry.addData("Arm Position: " , armPosition);
-
+        telemetry.addData("Arm Encoder Counts", armRotator);
+        telemetry.addData("Arm Encoder Counts 2", armRotator2);
         // this will send a telemetry message to signify robot waiting
         telemetry.addLine("I 'm Ready");
         telemetry.update();
