@@ -139,7 +139,7 @@ public class GM_Teleop12024 extends OpMode {
     }
 
     public void telemetrymotorprint() {
-        telemetry.clear
+        telemetry.clear();
         telemetry.addData("Arm Motor 1 Current", (armRotator.getCurrent(CurrentUnit.AMPS)));
         telemetry.addData("Arm Motor 2 Current", (armRotator2.getCurrent(CurrentUnit.AMPS)));
 
