@@ -330,7 +330,7 @@ public class GM_Teleop2024 extends OpMode {
 
         // Controls for armRotator
         if (gamepad2.a) {
-            armPosition = ARM_CLEAR_BARRIER;
+            armPosition = GROUND_POS;
             wrist.setPosition(.7);
         }
 
@@ -345,20 +345,23 @@ public class GM_Teleop2024 extends OpMode {
         }
 
         else if (gamepad2.x) {
-            armPosition = GROUND_POS;
+            armPosition = ARM_CLEAR_BARRIER;
             wrist.setPosition(.7);
         }
 
-        armRotator.setTargetPosition((int) (armPosition + armPositionFudgeFactor + armLiftComp));
+        if (runTime.seconds()<20) {
+            armRotator.setTargetPosition((int) (armPosition + armPositionFudgeFactor + armLiftComp));
 
-        ((DcMotorEx) armRotator).setVelocity(700);
-        armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            ((DcMotorEx) armRotator).setVelocity(700);
+            armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        armRotator2.setTargetPosition((int) (armPosition + armPositionFudgeFactor + armLiftComp));
+            armRotator2.setTargetPosition((int) (armPosition + armPositionFudgeFactor + armLiftComp));
 
-        ((DcMotorEx) armRotator2).setVelocity(700);
-        armRotator2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            ((DcMotorEx) armRotator2).setVelocity(700);
+            armRotator2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
+            runTime.reset();
+        }
 
         if (gamepad2.dpad_up)
             hangPosition += 350 * cycletime;
@@ -367,10 +370,23 @@ public class GM_Teleop2024 extends OpMode {
             hangPosition -= 350 * cycletime;
         }
 
+
         //runtime stuff
         looptime = getRuntime();
         cycletime = looptime-oldtime;
         oldtime = looptime;
+
+        if (armRotator.isOverCurrent()) {
+            telemetry.addLine("Rotator 1 Exceeded Limit");
+        }
+
+        if (armRotator2.isOverCurrent()) {
+            telemetry.addLine("Rotator 2 Exceeded Limit");
+        }
+
+        if (armSlide.isOverCurrent()) {
+            telemetry.addLine("Slide Exceeded Limit");
+        }
 
         //==========================================================\\
         //                        Telemetry                         \\
@@ -385,6 +401,9 @@ public class GM_Teleop2024 extends OpMode {
         telemetry.clear();
         telemetry.addData("Cycle time: ", cycletime);
         telemetry.addData("Drive Train Speed: " , speedVariable);
+        telemetry.addData("Arm Motor 1 Current", (armRotator.getCurrent(CurrentUnit.AMPS)));
+        telemetry.addData("Arm Motor 2 Current", (armRotator2.getCurrent(CurrentUnit.AMPS)));
+
         telemetry.addData("BRMotor2", "Position : %2d, Power : %.2f", rearRight.getCurrentPosition(), rearRight.getPower());
         telemetry.addData("FRMotor2", "Position : %2d, Power : %.2f", frontRight.getCurrentPosition(), frontRight.getPower());
 

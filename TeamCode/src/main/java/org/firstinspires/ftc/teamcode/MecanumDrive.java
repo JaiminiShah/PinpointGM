@@ -50,7 +50,7 @@ import java.lang.Math;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-
+//16.5 = track width
 @Config
 public class MecanumDrive {
     public static class Params {
