@@ -77,15 +77,14 @@ public class GM_AutoBR2024 extends LinearOpMode{
 
             @Override
             public boolean run(@NonNull TelemetryPacket packet) {
-                if (!initialized) {
+
                     armRotator.setTargetPosition(targetPosition);
                     armRotator.setPower(0.7);
                     armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                     armRotator2.setTargetPosition(targetPosition);
                     armRotator2.setPower(0.7);
                     armRotator2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                    initialized = true;
-                }
+
                 packet.put("Arm1 Position", armRotator.getCurrentPosition());
                 packet.put("Arm2 Position", armRotator2.getCurrentPosition());
                 return false;
@@ -297,6 +296,7 @@ public class GM_AutoBR2024 extends LinearOpMode{
                         new SequentialAction(
                         new ParallelAction(arm.moveToPosition((int)HIGH_BASKET),
                                 lift.liftUpperBasket()),
+
                                 fourSampleAuto1,
                                 new ParallelAction(
                                 wrist1.downWrist(),

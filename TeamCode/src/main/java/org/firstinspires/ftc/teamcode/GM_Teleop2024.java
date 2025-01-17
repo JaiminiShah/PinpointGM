@@ -137,7 +137,7 @@ public class GM_Teleop2024 extends OpMode {
         armRotator2 = hardwareMap.get(DcMotorEx.class, "armRotator2");
         armSlide = hardwareMap.get(DcMotorEx.class, "armSlide");
         //   hanger = hardwareMap.get(DcMotorEx.class, "hanger");
-        //liftMotor = hardwareMap.get(DcMotorEx.class, "liftMotor");
+
 
         // Servo Names
         wrist = hardwareMap.get(Servo.class, "wrist");

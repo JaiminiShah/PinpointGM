@@ -9,6 +9,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
         private double Kd;
         private double integralSum = 0;
         private double lastError = 0;
+        public  double f=0;
+        private final double ticks_in_degree=610.8/360;
 
         private ElapsedTime timer = new ElapsedTime(); // Timer for deltaTime calculations
 
@@ -23,6 +25,13 @@ import com.qualcomm.robotcore.util.ElapsedTime;
             this.Ki = Ki;
             this.Kd = Kd;
             timer.reset(); // Initialize the timer
+        }
+        public PIDController(double Kp, double Ki,double Kd,double f){
+            this.Kp=Kp;
+            this.Ki=Ki;
+            this.Kd=Kd;
+            this.f=f;
+
         }
 
         /**
@@ -54,9 +63,11 @@ import com.qualcomm.robotcore.util.ElapsedTime;
             // Derivative term (rate of change of error)
             double derivative = (error - lastError) / deltaTime;
             double dTerm = Kd * derivative;
+            double ff=Math.cos(Math.toRadians(target/ticks_in_degree))*f;
 
             // PID output
-            double output = pTerm + iTerm + dTerm;
+            double output = pTerm + iTerm + dTerm +ff ;
+            //double output1=pTerm+iTerm+dTerm;
 
             // Update last error and reset timer for next iteration
             lastError = error;
