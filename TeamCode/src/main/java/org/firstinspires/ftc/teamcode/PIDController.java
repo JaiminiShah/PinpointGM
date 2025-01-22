@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
     public class PIDController {
 
@@ -71,7 +72,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
             // Update last error and reset timer for next iteration
             lastError = error;
-            timer.reset(); // Reset timer after each update
+            timer.reset();// Reset timer after each update
 
             return output;
         }

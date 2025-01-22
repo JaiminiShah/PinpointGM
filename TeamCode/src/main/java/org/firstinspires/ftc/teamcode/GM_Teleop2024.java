@@ -348,7 +348,7 @@ public class GM_Teleop2024 extends OpMode {
             armPosition = GROUND_POS;
             wrist.setPosition(.7);
         }
-    if (runTime.seconds()<20) {
+    while (runTime.seconds()<20) {
         armRotator.setTargetPosition((int) (armPosition + armPositionFudgeFactor + armLiftComp));
 
         ((DcMotorEx) armRotator).setVelocity(700);

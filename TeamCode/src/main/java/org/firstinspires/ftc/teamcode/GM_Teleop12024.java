@@ -10,15 +10,15 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 @TeleOp(name="GM_Teleop12024", group="GreenMachine")  // Dares the name of the class and the group it is in.
-
 public class GM_Teleop12024 extends OpMode {
     DcMotorEx
-
-        rearLeft = null,
+            rearLeft = null,
             rearRight = null,
     frontLeft = null,
     frontRight = null,
@@ -46,9 +46,9 @@ public class GM_Teleop12024 extends OpMode {
             ,ki=0.003
             ,kd=0.004;
     double GROUND_POS=0;
-    double ARM_CLEAR_BARRIER=50;
-    double LOW_BASKET=280;
-    double HIGH_BASKET=320;
+    double ARM_CLEAR_BARRIER=100;
+    double LOW_BASKET=300;
+    double HIGH_BASKET=350;
     double armPosition;
     PIDController pid1=new PIDController(kp,ki,kd);
     double  // Declares all double variables and their values
@@ -67,13 +67,6 @@ public class GM_Teleop12024 extends OpMode {
         armRotator = hardwareMap.get(DcMotorEx.class, "armRotator");
         armRotator2 = hardwareMap.get(DcMotorEx.class, "armRotator2");
         armSlide = hardwareMap.get(DcMotorEx.class, "armSlide");
-        // Retrieve the IMU from the hardware map
-        imu = hardwareMap.get(IMU.class, "imu");
-        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD));
-        // Without this, the REV Hub's orientation is assumed to be logo up / USB forward
-        imu.initialize(parameters);
 
 
         // Servo Names
@@ -128,9 +121,13 @@ public class GM_Teleop12024 extends OpMode {
 
     @Override
     public void loop() {
-        double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
-        double x = gamepad1.left_stick_x;
-        double rx = gamepad1.right_stick_x;
+        // Retrieve the IMU from the hardware map
+        imu = hardwareMap.get(IMU.class, "imu");
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
+                RevHubOrientationOnRobot.LogoFacingDirection.UP,
+                RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD));
+        // Without this, the REV Hub's orientation is assumed to be logo up / USB forward
+        imu.initialize(parameters);
 
         // This button choice was made so that it is hard to hit on accident,
         // it can be freely changed based on preference.
@@ -139,27 +136,28 @@ public class GM_Teleop12024 extends OpMode {
             imu.resetYaw();
         }
 
-        double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+        // Drive Train controls
+        float FLspeed = -gamepad1.left_stick_y + gamepad1.left_stick_x;
+        float BLspeed = -gamepad1.left_stick_y - gamepad1.left_stick_x;
+        float FRspeed = -gamepad1.right_stick_y - gamepad1.right_stick_x;
+        float BRspeed = -gamepad1.right_stick_y + gamepad1.right_stick_x;
 
-        // Rotate the movement direction counter to the bot's rotation
-        double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
-        double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
+        rearLeft.setPower(Range.clip((-BLspeed * speedVariable), -1, 1));
+        rearRight.setPower(Range.clip((BRspeed * speedVariable), -1, 1));
+        frontLeft.setPower(Range.clip((FLspeed * speedVariable), -1, 1));
+        frontRight.setPower(Range.clip((-FRspeed * speedVariable), -1, 1));
 
-        rotX = rotX * 1.1;  // Counteract imperfect strafing
 
-        // Denominator is the largest motor power (absolute value) or 1
-        // This ensures all the powers maintain the same ratio,
-        // but only if at least one is out of the range [-1, 1]
-        double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1);
-        double frontLeftPower = (rotY + rotX + rx) / denominator;
-        double backLeftPower = (rotY - rotX + rx) / denominator;
-        double frontRightPower = (rotY - rotX - rx) / denominator;
-        double backRightPower = (rotY + rotX - rx) / denominator;
+        // DriveTrain Speed Controls
+        if (gamepad1.dpad_left) speedVariable -= 0.1;
+        if (gamepad1.dpad_right) speedVariable += 0.1;
 
-        frontLeft.setPower(frontLeftPower);
-        rearLeft.setPower(backLeftPower);
-        frontRight.setPower(frontRightPower);
-        rearRight.setPower(backRightPower);
+        speedVariable = Range.clip(speedVariable, 0, 1);
+
+        /* Send telemetry message to signify robot waiting */
+        telemetry.addLine("Robot Ready.");
+        telemetry.update();
+        // Retrieve the IMU from the hardware map
 
         // Controls for intake
         if (gamepad2.left_bumper) {
@@ -203,6 +201,7 @@ public class GM_Teleop12024 extends OpMode {
             armPower = pid1.update(LOW_BASKET,armRotator.getCurrentPosition(),15);
             armPower1=pid1.update(LOW_BASKET,armRotator.getCurrentPosition(),15);
             armPosition=LOW_BASKET;
+
            // wrist.setPosition(.7);
         }
 
@@ -225,19 +224,66 @@ public class GM_Teleop12024 extends OpMode {
             armPosition = GROUND_POS;
             //wrist.setPosition(.5);
         }
+        telemetry.addData("Arm Position: " , armPosition);
+        telemetry.addData("Arm Encoder Counts", armRotator);
+        telemetry.addData("Arm Encoder Counts 2", armRotator2);
+
+        // this will send a telemetry message to signify robot waiting
+        telemetry.addLine("I 'm Ready");
+        telemetry.update();
 
 
         armRotator.setTargetPosition((int)(armPosition));
          armRotator.setPower(armPower);
         //((DcMotorEx) armRotator).setVelocity(200);
-        armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+       // armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         armRotator2.setTargetPosition((int) (armPosition));
         armRotator2.setPower(armPower1);
        // ((DcMotorEx) armRotator2).setVelocity(200);
-        armRotator2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        //armRotator2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
+    }
+    public void stop(){
+        armPower = pid1.update(ARM_CLEAR_BARRIER,armRotator.getCurrentPosition(),8);
+        armPower1=pid1.update(ARM_CLEAR_BARRIER,armRotator.getCurrentPosition(),8);
+        armPosition = ARM_CLEAR_BARRIER;
+        armRotator.setTargetPosition((int)(armPosition));
+        armRotator.setPower(armPower);
+        armRotator2.setTargetPosition((int) (armPosition));
+        armRotator2.setPower(armPower1);
+
+    }
+    public void telemetrymotorprint(){
+        telemetry.clear();
+       // telemetry.addData("Cycle time: ", cycletime);
+        telemetry.addData("Drive Train Speed: " , speedVariable);
+        telemetry.addData("BRMotor2", "Position : %2d, Power : %.2f", rearRight.getCurrentPosition(), rearRight.getPower());
+        telemetry.addData("FRMotor2", "Position : %2d, Power : %.2f", frontRight.getCurrentPosition(), frontRight.getPower());
+
+        telemetry.addData("FLMotor2", "Position : %2d, Power : %.2f", frontLeft.getCurrentPosition(), frontLeft.getPower());
+        telemetry.addData("BLMotor2", "Position : %2d, Power : %.2f", rearLeft.getCurrentPosition(), rearLeft.getPower());
+        telemetry.addLine("left joystick | ")
+                .addData("x", gamepad1.left_stick_x)
+                .addData("y", gamepad1.left_stick_y);
+        telemetry.addLine("right joystick | ")
+                .addData("x", gamepad1.right_stick_x)
+                .addData("y", gamepad1.right_stick_y);
+
+        telemetry.addData("Arm Position: " , armPosition);
+        telemetry.addData("Arm Encoder Counts", armRotator);
+        telemetry.addData("Arm Encoder Counts 2", armRotator2);
+        // this will send a telemetry message to signify robot waiting
+        telemetry.addLine("I 'm Ready");
+        telemetry.update();
+    }
+    public void telemetrylift(){
+        telemetry.addData("lift variable", MAX_ARM_POS);
+        telemetry.addData("Lift Target Position",armSlide.getTargetPosition());
+        telemetry.addData("lift current position", armSlide.getCurrentPosition());
+        telemetry.addData("liftMotor Current:",(armSlide.getCurrent(CurrentUnit.AMPS)));
+        telemetry.update();
     }
 
 }
