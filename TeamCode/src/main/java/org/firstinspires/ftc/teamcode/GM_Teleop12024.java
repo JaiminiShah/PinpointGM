@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import android.util.Config;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -12,21 +13,28 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
-@TeleOp(name="GM_Teleop12024", group="GreenMachine")  // Dares the name of the class and the group it is in.
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
+@TeleOp(name="GM_Teleop2024New", group="GreenMachine")  // Dares the name of the class and the group it is in.
+
 public class GM_Teleop12024 extends OpMode {
+
+    
     DcMotorEx
             rearLeft = null,
             rearRight = null,
-    frontLeft = null,
-    frontRight = null,
-    armRotator = null,
-    armRotator2 = null,
-    armSlide = null;
-    final double liftIncrement = 23.0;
+            frontLeft = null,
+            frontRight = null,
+            armRotator = null,
+            armRotator2 = null,
+            armSlide = null;
+
+    final double armIncrement = 1;
+
+    final double liftIncrement = 20;
     final double MAX_ARM_POS = 2000;
+
     // servo names/declarations
     Servo
             wrist = null;
@@ -34,8 +42,10 @@ public class GM_Teleop12024 extends OpMode {
     // Continuous rotation servo
     CRServo
             intake = null;
+
     double liftPosition=0;
     double hangPosition = 0;
+
     //Control hub IMU declaration
     IMU imu;
 
@@ -44,11 +54,12 @@ public class GM_Teleop12024 extends OpMode {
     double armPower,armPower1;
     double kp=0.77
             ,ki=0.003
-            ,kd=0.004;
-    double GROUND_POS=0;
-    double ARM_CLEAR_BARRIER=100;
-    double LOW_BASKET=300;
-    double HIGH_BASKET=350;
+            ,kd=0.004
+            ,f=0.03;
+    double GROUND_POS=50;
+    double ARM_CLEAR_BARRIER=200;
+    double LOW_BASKET=530;
+    double HIGH_BASKET=500;
     double armPosition;
     PIDController pid1=new PIDController(kp,ki,kd);
     double  // Declares all double variables and their values
@@ -67,6 +78,13 @@ public class GM_Teleop12024 extends OpMode {
         armRotator = hardwareMap.get(DcMotorEx.class, "armRotator");
         armRotator2 = hardwareMap.get(DcMotorEx.class, "armRotator2");
         armSlide = hardwareMap.get(DcMotorEx.class, "armSlide");
+        // Retrieve the IMU from the hardware map
+        imu = hardwareMap.get(IMU.class, "imu");
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
+                RevHubOrientationOnRobot.LogoFacingDirection.UP,
+                RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD));
+        // Without this, the REV Hub's orientation is assumed to be logo up / USB forward
+        imu.initialize(parameters);
 
 
         // Servo Names
@@ -74,11 +92,11 @@ public class GM_Teleop12024 extends OpMode {
         intake = hardwareMap.get(CRServo.class, "intake");
 
         //Direction of motors
-        //Direction of motors
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
         frontRight.setDirection(DcMotor.Direction.REVERSE);
         rearLeft.setDirection(DcMotor.Direction.FORWARD);
         rearRight.setDirection(DcMotor.Direction.FORWARD);
+
         armRotator.setDirection(DcMotor.Direction.FORWARD);
         armRotator2.setDirection(DcMotor.Direction.REVERSE);
         armSlide.setDirection(DcMotor.Direction.REVERSE);
@@ -92,8 +110,10 @@ public class GM_Teleop12024 extends OpMode {
         armRotator2.setPower(0);
         armSlide.setPower(0);
         intake.setPower(0);
+
         // Sets position for servos
-        wrist.setPosition(.7);
+        wrist.setPosition(0);
+
         // setting all subsystem and motors to stop and reset encoder mode
         frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -111,9 +131,11 @@ public class GM_Teleop12024 extends OpMode {
         armRotator.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         armRotator2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         armSlide.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
         //this will send a telemetry message to signify robot waiting;
         telemetry.addLine("AUTOBOTS ROLL OUT");
         //telemetrylift();
+
         telemetry.update();
         runTime.reset();
 
@@ -121,22 +143,6 @@ public class GM_Teleop12024 extends OpMode {
 
     @Override
     public void loop() {
-        // Retrieve the IMU from the hardware map
-        imu = hardwareMap.get(IMU.class, "imu");
-        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD));
-        // Without this, the REV Hub's orientation is assumed to be logo up / USB forward
-        imu.initialize(parameters);
-
-        // This button choice was made so that it is hard to hit on accident,
-        // it can be freely changed based on preference.
-        // The equivalent button is start on Xbox-style controllers.
-        if (gamepad1.options) {
-            imu.resetYaw();
-        }
-
-        // Drive Train controls
         float FLspeed = -gamepad1.left_stick_y + gamepad1.left_stick_x;
         float BLspeed = -gamepad1.left_stick_y - gamepad1.left_stick_x;
         float FRspeed = -gamepad1.right_stick_y - gamepad1.right_stick_x;
@@ -148,16 +154,16 @@ public class GM_Teleop12024 extends OpMode {
         frontRight.setPower(Range.clip((-FRspeed * speedVariable), -1, 1));
 
 
-        // DriveTrain Speed Controls
-        if (gamepad1.dpad_left) speedVariable -= 0.1;
-        if (gamepad1.dpad_right) speedVariable += 0.1;
+        if(gamepad1.left_trigger > .1){
+            armPosition-=armIncrement;
 
-        speedVariable = Range.clip(speedVariable, 0, 1);
+        }
 
-        /* Send telemetry message to signify robot waiting */
-        telemetry.addLine("Robot Ready.");
-        telemetry.update();
-        // Retrieve the IMU from the hardware map
+        if(gamepad1.right_trigger > .1)  {
+            armPosition+=armIncrement;
+
+        }
+
 
         // Controls for intake
         if (gamepad2.left_bumper) {
@@ -191,73 +197,64 @@ public class GM_Teleop12024 extends OpMode {
         // Moves slide to the position
         armSlide.setTargetPosition((int) (liftPosition));
 
-        ((DcMotorEx) armSlide).setVelocity(400);
+        ((DcMotorEx) armSlide).setVelocity(700);
         armSlide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
         // Controls for armRotator
-        if (gamepad2.a) {
+        if (gamepad2.b) {
 
             armPower = pid1.update(LOW_BASKET,armRotator.getCurrentPosition(),15);
             armPower1=pid1.update(LOW_BASKET,armRotator.getCurrentPosition(),15);
             armPosition=LOW_BASKET;
-
-           // wrist.setPosition(.7);
-        }
-
-        else if (gamepad2.b) {
-            armPower = pid1.update(HIGH_BASKET,armRotator.getCurrentPosition(),15);
-            armPower1=pid1.update(HIGH_BASKET,armRotator.getCurrentPosition(),15);
-            armPosition=HIGH_BASKET;
-           // armPosition = LOW_BASKET;
-            //wrist.setPosition(.5);
+            wrist.setPosition(.5);
         }
 
         else if (gamepad2.y) {
+            armPower = pid1.update(HIGH_BASKET,armRotator.getCurrentPosition(),15);
+            armPower1=pid1.update(HIGH_BASKET,armRotator.getCurrentPosition(),15);
+            armPosition=HIGH_BASKET;
+            wrist.setPosition(.5);
+        }
+
+        else if (gamepad2.x) {
             armPower = pid1.update(ARM_CLEAR_BARRIER,armRotator.getCurrentPosition(),8);
             armPower1=pid1.update(ARM_CLEAR_BARRIER,armRotator.getCurrentPosition(),8);
-           armPosition = ARM_CLEAR_BARRIER;
-            //wrist.setPosition(.5);
-        } else if (gamepad2.x) {
+            armPosition = ARM_CLEAR_BARRIER;
+            wrist.setPosition(.7);
+
+        }
+
+        else if (gamepad2.a) {
             armPower = pid1.update(GROUND_POS,armRotator.getCurrentPosition(),8);
             armPower1=pid1.update(GROUND_POS,armRotator.getCurrentPosition(),8);
             armPosition = GROUND_POS;
-            //wrist.setPosition(.5);
+            wrist.setPosition(.3);
         }
-        telemetry.addData("Arm Position: " , armPosition);
-        telemetry.addData("Arm Encoder Counts", armRotator);
-        telemetry.addData("Arm Encoder Counts 2", armRotator2);
 
-        // this will send a telemetry message to signify robot waiting
-        telemetry.addLine("I 'm Ready");
-        telemetry.update();
-
-
-        armRotator.setTargetPosition((int)(armPosition));
-         armRotator.setPower(armPower);
-        //((DcMotorEx) armRotator).setVelocity(200);
-       // armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-        armRotator2.setTargetPosition((int) (armPosition));
-        armRotator2.setPower(armPower1);
-       // ((DcMotorEx) armRotator2).setVelocity(200);
-        //armRotator2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-
-    }
-    public void stop(){
-        armPower = pid1.update(ARM_CLEAR_BARRIER,armRotator.getCurrentPosition(),8);
-        armPower1=pid1.update(ARM_CLEAR_BARRIER,armRotator.getCurrentPosition(),8);
-        armPosition = ARM_CLEAR_BARRIER;
         armRotator.setTargetPosition((int)(armPosition));
         armRotator.setPower(armPower);
+        //((DcMotorEx) armRotator).setVelocity(200);
+        armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
         armRotator2.setTargetPosition((int) (armPosition));
         armRotator2.setPower(armPower1);
+        // ((DcMotorEx) armRotator2).setVelocity(200);
+        armRotator2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        if (gamepad2.dpad_right){
+            wrist.setPosition(.2);
+        }
+
+        if (gamepad2.dpad_left){
+            wrist.setPosition(.3);
+        }
+
 
     }
+
     public void telemetrymotorprint(){
         telemetry.clear();
-       // telemetry.addData("Cycle time: ", cycletime);
         telemetry.addData("Drive Train Speed: " , speedVariable);
         telemetry.addData("BRMotor2", "Position : %2d, Power : %.2f", rearRight.getCurrentPosition(), rearRight.getPower());
         telemetry.addData("FRMotor2", "Position : %2d, Power : %.2f", frontRight.getCurrentPosition(), frontRight.getPower());
@@ -272,18 +269,28 @@ public class GM_Teleop12024 extends OpMode {
                 .addData("y", gamepad1.right_stick_y);
 
         telemetry.addData("Arm Position: " , armPosition);
-        telemetry.addData("Arm Encoder Counts", armRotator);
-        telemetry.addData("Arm Encoder Counts 2", armRotator2);
         // this will send a telemetry message to signify robot waiting
         telemetry.addLine("I 'm Ready");
         telemetry.update();
-    }
-    public void telemetrylift(){
-        telemetry.addData("lift variable", MAX_ARM_POS);
-        telemetry.addData("Lift Target Position",armSlide.getTargetPosition());
-        telemetry.addData("lift current position", armSlide.getCurrentPosition());
-        telemetry.addData("liftMotor Current:",(armSlide.getCurrent(CurrentUnit.AMPS)));
-        telemetry.update();
+
     }
 
+
+
+    //Code will run ONCE after the driver hits STOP
+    @Override
+    public void stop() {
+        // Sets all motors to zero power except Arms to keep pos
+        frontLeft.setPower(0);
+        rearLeft.setPower(0);
+        frontRight.setPower(0);
+        rearRight.setPower(0);
+        armSlide.setPower(0);
+        armRotator.setPower(0);
+        armRotator2.setPower(0);
+        //      hanger.setPower(0);
+    }
 }
+
+
+

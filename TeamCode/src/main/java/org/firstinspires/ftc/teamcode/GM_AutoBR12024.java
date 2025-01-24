@@ -24,95 +24,63 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 import java.lang.Math;
 @Autonomous(name = "GM_AutoBR12024",group="Autonomous")
 public class GM_AutoBR12024 extends LinearOpMode {
-    double kp=0.77
-            ,ki=0.003
-            ,kd=0.004;
-    int GROUND_POS=0;
-    int ARM_CLEAR_BARRIER=50;
-    int LOW_BASKET=280;
-    int HIGH_BASKET=320;
-    double armPosition;
-    PIDController pid1=new PIDController(kp,ki,kd);
-    double armPower,armPower1;
-
-    public class Arm {
-        DcMotorEx armRotator=null,
-                armRotator2=null;
-
-
-
-        public Arm(HardwareMap hardwareMap) {
-            armRotator = hardwareMap.get(DcMotorEx.class, "armRotator");
-            armRotator.setDirection(DcMotor.Direction.FORWARD);
-            armRotator.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            armRotator.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-
-            armRotator2 = hardwareMap.get(DcMotorEx.class, "armRotator2");
-            armRotator2.setDirection(DcMotor.Direction.REVERSE);
-            armRotator2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            armRotator2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        }
-
-        public class MoveArmAction implements Action {
-            int targetPosition;
-            private boolean initialized = false;
-
-            public MoveArmAction(int targetPosition) {
-                this.targetPosition = targetPosition;
-               // new SleepAction(1);
-
-            }
-
-            @Override
-            public boolean run(@NonNull TelemetryPacket packet) {
-
-                    armPower = pid1.update(targetPosition,armRotator.getCurrentPosition(),15);
-                    armPower1=pid1.update(targetPosition,armRotator.getCurrentPosition(),15);
-
-                    armRotator.setTargetPosition(targetPosition);
-                    armRotator.setPower(armPower);
-                   // armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                    armRotator2.setTargetPosition(targetPosition);
-                    armRotator2.setPower(armPower1);
-                   // armRotator2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-
-                packet.put("Arm1 Position", armRotator.getCurrentPosition());
-                packet.put("Arm2 Position", armRotator2.getCurrentPosition());
-                return false;
-
-            }
-        }
-
-
-        public Action moveArmUpperBasket() {
-
-            return new MoveArmAction(HIGH_BASKET);
-        }
-        public Action moveArmLowerBasket(){
-            return new MoveArmAction(LOW_BASKET);
-        }
-        public Action moveArmClearBarrier(){
-            return new MoveArmAction(ARM_CLEAR_BARRIER);
-        }
-        public Action moveArmGroundPosition(){
-            return new MoveArmAction(GROUND_POS);
-        }
+    public static String TEAM_NAME = "GreenMachine"; //TODO: Enter team Name
+    public static int TEAM_NUMBER = 8791;
+    //Define and declare Robot Starting Locations
+    public enum START_POSITION{
+        BLUERIGHT,
+        REDRIGHT
     }
+    public static START_POSITION startPosition;
 
     //Blue Right to Park in Observation Zone
     @Override
     public void runOpMode() throws InterruptedException {
-        Pose2d initialPose = new Pose2d(-24, 62, Math.toRadians(270));
-        PinpointDrive drive = new PinpointDrive(hardwareMap, initialPose);
-        Action onePlusThreeSpecimen1 = drive.actionBuilder(drive.pose)
-                 .strafeToLinearHeading(new Vector2d(-40,62), Math.toRadians(270))
-                .build();
-        Actions.runBlocking(
-                onePlusThreeSpecimen1
-        );
+        while(!isStopRequested()){
+            telemetry.addData("Initializing FTC Wires (ftcwires.org) Autonomous adopted for Team:",
+                    TEAM_NAME, " ", TEAM_NUMBER);
+            telemetry.addData("---------------------------------------","");
+            telemetry.addData("Select Starting Position using XYAB on Logitech (or ▢ΔOX on Playstayion) on gamepad 1:","");
+            telemetry.addData("    Left   ", "(X / ▢)");
+            telemetry.addData("    Right ", "(Y / Δ)");
+
+            if(gamepad1.x){
+                startPosition = START_POSITION.BLUERIGHT; //Blue Left
+                break;
+            }
+            if(gamepad1.y){
+                startPosition = START_POSITION.REDRIGHT; //Red
+                break;
+            }
+            telemetry.update();
+
+        }
+        telemetry.setAutoClear(false);
+        telemetry.clearAll();
+
+        telemetry.addData("Selected Starting Position", startPosition);
+        telemetry.update();
+
+        waitForStart();
+        // Game Play Button is pressed
+        if (opModeIsActive() && !isStopRequested()) {
+            //Build parking trajectory based on last detected target by vision
+            Pose2d initialPose = new Pose2d(-24, 62, Math.toRadians(270));
+            PinpointDrive drive = new PinpointDrive(hardwareMap, initialPose);
+            Action onePlusThreeSpecimen1 = drive.actionBuilder(drive.pose)
+                    .strafeToLinearHeading(new Vector2d(-45,62), Math.toRadians(270))
+                    .build();
+            Actions.runBlocking(
+                    onePlusThreeSpecimen1
+            );
+
+
+        }
+
+
+    }// end runOpMode()
+
 
 
     }
-}
+

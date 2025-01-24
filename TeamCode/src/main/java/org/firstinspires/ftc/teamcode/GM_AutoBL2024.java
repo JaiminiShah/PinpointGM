@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.CRServoImplEx;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorImplEx;
 import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -20,8 +21,20 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class GM_AutoBL2024 extends LinearOpMode {
     public static String TEAM_NAME = "GreenMachine"; //TODO: Enter team Name
     public static int TEAM_NUMBER = 8791; //TODO: Enter team Number
-    final double ARM_TICKS_PER_DEGREE =
-            25 // Number of encoder ticks per rotation of the bare motor
+    double kp=0.77,
+           ki=0.003,
+           kd=0.004,
+           f=0.003;
+    int GROUND_POS=0;
+    int ARM_CLEAR_BARRIER=50;
+    int LOW_BASKET=280;
+    int HIGH_BASKET=320;
+    double armPosition;
+    PIDController pid1=new PIDController(kp,ki,kd);
+    double armPower,armPower1;
+
+   /* final double ARM_TICKS_PER_DEGREE =
+            28 // Number of encoder ticks per rotation of the bare motor
                     * 250047.0 / 4913 // This is the exact gear ratio of the 50.9:1 Yellow Jacket gearbox
                     * 100/20 // This is the external gear reduction, a 20T pinion gear that drives a 100T hub-mount gear
                     * 1/360.0;
@@ -33,19 +46,19 @@ public class GM_AutoBL2024 extends LinearOpMode {
     final double LOW_BASKET                = 50.9337861 * ARM_TICKS_PER_DEGREE;
     final double HIGH_BASKET               = 101.867572 * ARM_TICKS_PER_DEGREE;
     final double ARM_WINCH_ROBOT           = 10  * ARM_TICKS_PER_DEGREE;
-    final double LIFT_TICKS_PER_MM = (111132.0 / 289.0) / 120.0;
+    final double LIFT_TICKS_PER_MM = (111132.0 / 289.0) / 120.0;*/
 
-    final double LIFT_COLLAPSED = 0 * LIFT_TICKS_PER_MM;
-    final double LIFT_SCORING_IN_LOW_BASKET = 0 * LIFT_TICKS_PER_MM;
-    final double LIFT_SCORING_IN_HIGH_BASKET = 480 * LIFT_TICKS_PER_MM;
+    final double LIFT_COLLAPSED = 0;
+    final double LIFT_SCORING_IN_LOW_BASKET = 500;
+    final double LIFT_SCORING_IN_HIGH_BASKET = 700;
 
 
 
 
     //Define and declare Robot Starting Locations
     public enum START_POSITION{
-        LEFT,
-        RIGHT
+        BLUELEFT,
+        REDLEFT
     }
     public static START_POSITION startPosition;
     DcMotorEx armRotator=null,
@@ -62,21 +75,22 @@ public class GM_AutoBL2024 extends LinearOpMode {
         armRotator = hardwareMap.get(DcMotorEx.class, "armRotator");
         armRotator.setDirection(DcMotor.Direction.REVERSE);
         armRotator.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        armRotator.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        armRotator.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
 
         armRotator2 = hardwareMap.get(DcMotorEx.class, "armRotator2");
         armRotator2.setDirection(DcMotor.Direction.FORWARD);
         armRotator2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        armRotator2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        armRotator2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         armSlide = hardwareMap.get(DcMotorEx.class, "armSlide");
         armSlide.setDirection(DcMotor.Direction.FORWARD);
         armSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         armSlide.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-
-
+        wrist=hardwareMap.get(ServoImplEx.class,"wrist");
+        wristUp();
+        intake=hardwareMap.get(CRServoImplEx.class,"intake");
 
         while(!isStopRequested()){
             telemetry.addData("Initializing FTC Wires (ftcwires.org) Autonomous adopted for Team:",
@@ -87,14 +101,15 @@ public class GM_AutoBL2024 extends LinearOpMode {
             telemetry.addData("    Right ", "(Y / Δ)");
 
             if(gamepad1.x){
-                startPosition = START_POSITION.LEFT;
+                startPosition = START_POSITION.BLUELEFT; //Blue Left
                 break;
             }
             if(gamepad1.y){
-                startPosition = START_POSITION.RIGHT;
+                startPosition = START_POSITION.REDLEFT; //Red
                 break;
             }
             telemetry.update();
+
         }
         telemetry.setAutoClear(false);
         telemetry.clearAll();
@@ -106,16 +121,17 @@ public class GM_AutoBL2024 extends LinearOpMode {
         // Game Play Button is pressed
         if (opModeIsActive() && !isStopRequested()) {
             //Build parking trajectory based on last detected target by vision
+            runAutonoumousMode();
 
         }
 
 
     }// end runOpMode()
     public void moveArm(double position) {
-        armRotator.setTargetPosition((int) (position));
-        armRotator.setVelocity(700);
-        armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        armRotator2.setTargetPosition((int) (position));
+        armPower=pid1.update(LOW_BASKET,armRotator.getCurrentPosition(),15);
+        armPower1=pid1.update(LOW_BASKET,armRotator2.getCurrentPosition(),15);
+        armPosition=position;
+
     }
     public void wristUp(){
         wrist.setPwmRange(new PwmControl.PwmRange(500,2500));
@@ -132,37 +148,35 @@ public class GM_AutoBL2024 extends LinearOpMode {
     }
     public void intakeR(){
         intake.setPower(-1);
-
     }
     public void slideUp(double uposition){
         armSlide.setTargetPosition((int)uposition);
         armSlide.setPower(0.7);
         armSlide.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
-
     }
 
     public void runAutonoumousMode() {
-        //Auto Left Positions - Samples
-        Pose2d initPose = new Pose2d(42, 63, Math.toRadians(0)); // Starting Pose
+        //Auto Blue Left Positions - Samples
+        Pose2d initPose = new Pose2d(31.2, 61.7, Math.toRadians(270)); // Starting Pose
         Pose2d submersibleSpecimen = new Pose2d(28,-1,Math.toRadians(0) );
-        Pose2d netZone = new Pose2d(9  ,15,Math.toRadians(-45));
-        Pose2d yellowSampleOne = new Pose2d(18,12,Math.toRadians(-14));
-        Pose2d yellowSampleTwo = new Pose2d(18,18,Math.toRadians(1));
-        Pose2d preSubmersiblePark = new Pose2d(58,11,Math.toRadians(0));
-        Pose2d submersiblePark = new Pose2d(59,-15,Math.toRadians(90));
+        Pose2d netZone = new Pose2d(58 ,53,Math.toRadians(225));
+        Pose2d yellowSampleOne = new Pose2d(46,51,Math.toRadians(270));
+        Pose2d yellowSampleTwo = new Pose2d(46,51,Math.toRadians(273));
+        Pose2d preSubmersiblePark = new Pose2d(24.2,11,Math.toRadians(0));
+        Pose2d submersiblePark = new Pose2d(24.2,9.1,Math.toRadians(0));
 
-        //Auto Right Positions - Specimens
-        Pose2d observationZone = new Pose2d(8,-37,Math.toRadians(0));
-        Pose2d specimenPickup = new Pose2d(3,-30,Math.toRadians(0));
-        Pose2d preColorSampleOne = new Pose2d(28,-27,Math.toRadians(0));
-        Pose2d prePushColorSampleOne = new Pose2d(51,-27,Math.toRadians(0));
-        Pose2d colorSampleOne = new Pose2d(51,-40,Math.toRadians(0));
-        Pose2d observationPark = new Pose2d(5,-30,Math.toRadians(0));
+        //Auto Red Left Positions -Samples
+        Pose2d redinitPose= new Pose2d(-31.2,-61.7,Math.toRadians(270));// Starting Pose for Red Left
+        Pose2d rednetzone = new Pose2d(-58,-53,Math.toRadians(225));
+        Pose2d redyellowone = new Pose2d(-46,-51,Math.toRadians(270));
+        Pose2d redyellowtwo = new Pose2d(-46,-51,Math.toRadians(273));
+        Pose2d colorSampleOne = new Pose2d(-24.2,-11,Math.toRadians(0));
+        Pose2d observationPark = new Pose2d(-24.2,-9.1,Math.toRadians(0));
 
         double waitSecondsBeforeDrop = 0;
         PinpointDrive drive = new PinpointDrive(hardwareMap, initPose);
 
-        if (startPosition == START_POSITION.LEFT) {
+        if (startPosition == START_POSITION.BLUELEFT) {
 
             //Move robot to netZone with preloaded sample ready to drop in basket
             Actions.runBlocking(
@@ -173,12 +187,13 @@ public class GM_AutoBL2024 extends LinearOpMode {
             telemetry.addLine("Move robot to netZone");
             telemetry.update();
             //Add code to drop sample in basket
-            moveArm(HIGH_BASKET);
-            slideUp(LIFT_SCORING_IN_HIGH_BASKET);
+            moveArm(LOW_BASKET);
+            slideUp(LIFT_SCORING_IN_LOW_BASKET);
             wristDown();
             intakeR();
 
-            safeWaitSeconds(1);
+            safeWaitSeconds(2);
+            slideUp(LIFT_COLLAPSED);
             //intake.setPower(0.0);
             telemetry.addLine("Drop sample in basket");
             telemetry.update();
@@ -210,11 +225,13 @@ public class GM_AutoBL2024 extends LinearOpMode {
             telemetry.addLine("Move robot to net zone to drop sample");
             telemetry.update();
             //Add code to drop sample in bucket
-            moveArm(HIGH_BASKET);
+            moveArm(LOW_BASKET);
+            slideUp(LIFT_SCORING_IN_LOW_BASKET);
             wristDown();
             intakeR();
 
-            safeWaitSeconds(1);
+            safeWaitSeconds(2);
+            slideUp(LIFT_COLLAPSED);
             telemetry.addLine("Drop sample in bucket");
             telemetry.update();
 
@@ -245,7 +262,8 @@ public class GM_AutoBL2024 extends LinearOpMode {
             telemetry.update();
 
             //Add code to drop sample in bucket
-            moveArm(HIGH_BASKET);
+            moveArm(LOW_BASKET);
+            slideUp(LIFT_SCORING_IN_LOW_BASKET);
             wristDown();
             intakeR();
             safeWaitSeconds(1);
@@ -272,121 +290,122 @@ public class GM_AutoBL2024 extends LinearOpMode {
             slideUp(LIFT_COLLAPSED);
 
 
-        } else { // RIGHT
-
-            //Move robot with preloaded specimen to submersible to place specimen
+        } else { // REDLEFT
+            //Move robot to netZone with preloaded sample ready to drop in basket
             Actions.runBlocking(
-                    drive.actionBuilder(drive.pose)
-                            .strafeTo(submersibleSpecimen.position)
+                    drive.actionBuilder(redinitPose)
+                            .strafeToLinearHeading(rednetzone.position, rednetzone.heading)
                             .build());
             safeWaitSeconds(1);
-            telemetry.addLine("Move robot to submersible to place specimen");
+            telemetry.addLine("Move robot to netZone");
             telemetry.update();
-            //add code to hang specimen
-            safeWaitSeconds(1);
-            telemetry.addLine("Hang specimen");
+            //Add code to drop sample in basket
+            moveArm(LOW_BASKET);
+            slideUp(LIFT_SCORING_IN_LOW_BASKET);
+            wristDown();
+            intakeR();
+
+            safeWaitSeconds(2);
+            slideUp(LIFT_COLLAPSED);
+            //intake.setPower(0.0);
+            telemetry.addLine("Drop sample in basket");
             telemetry.update();
 
-
-
-            //Move robot to color sample 1 (pushing - can change for your liking)
+            //Move robot to pick yellow sample one
             Actions.runBlocking(
-                    drive.actionBuilder(submersibleSpecimen)
-                            .strafeToLinearHeading(preColorSampleOne.position, preColorSampleOne.heading)
+                    drive.actionBuilder(netZone)
+                            .strafeToLinearHeading(redyellowone.position, redyellowone.heading)
                             .build());
             safeWaitSeconds(1);
-            telemetry.addLine("Move robot to preColor Sample");
+            telemetry.addLine("Move robot to pick yellow sample one");
             telemetry.update();
+            //Add code to pick up yellow sample
+            moveArm(ARM_CLEAR_BARRIER);
+            wristUp();
+            intakeF();
+
+            safeWaitSeconds(1);
+
+            telemetry.addLine("Pick up yellow sample");
+            telemetry.update();
+
+            //Move robot to net zone to drop sample
             Actions.runBlocking(
-                    drive.actionBuilder(preColorSampleOne)
-                            .strafeToLinearHeading(prePushColorSampleOne.position, prePushColorSampleOne.heading)
+                    drive.actionBuilder(redyellowone)
+                            .strafeToLinearHeading(netZone.position, netZone.heading)
                             .build());
             safeWaitSeconds(1);
-            telemetry.addLine("Move robot to preColor Sample");
+            telemetry.addLine("Move robot to net zone to drop sample");
             telemetry.update();
+            //Add code to drop sample in bucket
+            moveArm(LOW_BASKET);
+            slideUp(LIFT_SCORING_IN_LOW_BASKET);
+            wristDown();
+            intakeR();
+
+            safeWaitSeconds(2);
+            slideUp(LIFT_COLLAPSED);
+            telemetry.addLine("Drop sample in bucket");
+            telemetry.update();
+
+            //Move robot to yellow sample two
             Actions.runBlocking(
-                    drive.actionBuilder(prePushColorSampleOne)
+                    drive.actionBuilder(rednetzone)
+                            .strafeToLinearHeading(redyellowtwo.position, redyellowtwo.heading)
+                            .build());
+            safeWaitSeconds(1);
+            telemetry.addLine("Move robot to yellow sample two");
+            telemetry.update();
+            //Add code to pick up yellow sample
+            moveArm(ARM_CLEAR_BARRIER);
+            wristUp();
+            intakeF();
+
+            safeWaitSeconds(1);
+            telemetry.addLine("Pick up yellow sample");
+            telemetry.update();
+
+            //Move robot to net zone
+            Actions.runBlocking(
+                    drive.actionBuilder(redyellowtwo)
+                            .strafeToLinearHeading(rednetzone.position, rednetzone.heading)
+                            .build());
+            safeWaitSeconds(1);
+            telemetry.addLine("Move robot to net zone");
+            telemetry.update();
+
+            //Add code to drop sample in bucket
+            moveArm(LOW_BASKET);
+            slideUp(LIFT_SCORING_IN_LOW_BASKET);
+            wristDown();
+            intakeR();
+            safeWaitSeconds(1);
+            telemetry.addLine("Drop sample in bucket");
+            telemetry.update();
+
+            //Move robot to submersible parking
+            Actions.runBlocking(
+                    drive.actionBuilder(rednetzone)
                             .strafeToLinearHeading(colorSampleOne.position, colorSampleOne.heading)
                             .build());
             safeWaitSeconds(1);
-            telemetry.addLine("Move robot to Color Sample");
+            telemetry.addLine("Move robot to preSubmersible parking");
             telemetry.update();
-
             Actions.runBlocking(
                     drive.actionBuilder(colorSampleOne)
-                            .strafeToLinearHeading(observationZone.position, observationZone.heading)
+                            .strafeToLinearHeading(observationPark.position,observationPark.heading)
                             .build());
             safeWaitSeconds(1);
-            telemetry.addLine("Move robot and pushing sample to observation zone");
+            telemetry.addLine("hitting bottom rung");
             telemetry.update();
+            //add code to hit bottom rung
+            moveArm(ARM_CLEAR_BARRIER);
+            slideUp(LIFT_COLLAPSED);
 
-            //Move robot to pickup specimen
-            Actions.runBlocking(
-                    drive.actionBuilder(observationZone)
-                            .strafeToLinearHeading(specimenPickup.position, specimenPickup.heading)
-                            .build());
-            safeWaitSeconds(1);
-            telemetry.addLine("Move robot specimen pickup ");
-            telemetry.update();
-            //add code to pick up specimen
-            safeWaitSeconds(1);
-            telemetry.addLine("Pick up specimen");
-            telemetry.update();
-
-            //Move robot to  submersible specimen
-            Actions.runBlocking(
-                    drive.actionBuilder(specimenPickup)
-                            .strafeToLinearHeading(submersibleSpecimen.position, submersibleSpecimen.heading)
-                            .build());
-            safeWaitSeconds(1);
-            telemetry.addLine("Move robot to submersible specimen");
-            telemetry.update();
-            //add code to hang specimen
-            safeWaitSeconds(1);
-            telemetry.addLine("Hang specimen");
-            telemetry.update();
-
-            //Move robot to pickup specimen
-            Actions.runBlocking(
-                    drive.actionBuilder(submersibleSpecimen)
-                            .strafeToLinearHeading(specimenPickup.position, specimenPickup.heading)
-                            .build());
-            safeWaitSeconds(1);
-            telemetry.addLine("Move robot specimen pickup ");
-            telemetry.update();
-            //add code to pick up specimen
-            safeWaitSeconds(1);
-            telemetry.addLine("Pick up specimen");
-            telemetry.update();
-
-
-
-            //Move robot to submersible
-            Actions.runBlocking(
-                    drive.actionBuilder(specimenPickup)
-                            .strafeToLinearHeading(submersibleSpecimen.position, submersibleSpecimen.heading)
-                            .build());
-            safeWaitSeconds(1);
-            telemetry.addLine("Move robot to submersible");
-            telemetry.update();
-
-            //add code to hang specimen
-            safeWaitSeconds(1);
-            telemetry.addLine("Hang specimen");
-            telemetry.update();
-
-
-            //Move robot to observation parking
-            Actions.runBlocking(
-                    drive.actionBuilder(submersibleSpecimen)
-                            .strafeToLinearHeading(observationPark.position, observationPark.heading)
-                            .build());
-            safeWaitSeconds(1);
-            telemetry.addLine("Move robot to observation parking");
-            telemetry.update();
         }
 
-    }
+
+        }
 
     //method to wait safely with stop button working if needed. Use this instead of sleep
     public void safeWaitSeconds(double time) {
