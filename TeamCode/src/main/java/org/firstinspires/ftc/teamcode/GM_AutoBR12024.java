@@ -68,7 +68,7 @@ public class GM_AutoBR12024 extends LinearOpMode {
             Pose2d initialPose = new Pose2d(-24, 62, Math.toRadians(270));
             PinpointDrive drive = new PinpointDrive(hardwareMap, initialPose);
             Action onePlusThreeSpecimen1 = drive.actionBuilder(drive.pose)
-                    .strafeToLinearHeading(new Vector2d(-45,62), Math.toRadians(270))
+                    .strafeToLinearHeading(new Vector2d(-55,62), Math.toRadians(270))
                     .build();
             Actions.runBlocking(
                     onePlusThreeSpecimen1

@@ -15,25 +15,28 @@ import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.PIDController;
+import org.firstinspires.ftc.teamcode.PinpointDrive;
+
 
 //import org.firstinspires.ftc.teamcode.PIDCoefficients;
 
 
-@Autonomous(name = "GM_AutoBL2024", group = "00-Autonomous", preselectTeleOp = "FTC Wires TeleOp")
-public class GM_AutoBL2024 extends LinearOpMode {
+@Autonomous(name = "GM_AutoBRL2024", group = "00-Autonomous", preselectTeleOp = "FTC Wires TeleOp")
+public class GM_AutoBRL2024 extends LinearOpMode {
     public static String TEAM_NAME = "GreenMachine"; //TODO: Enter team Name
     public static int TEAM_NUMBER = 8791; //TODO: Enter team Number
-    double kp=0.77,
-           ki=0.000,
-           kd=0.004,
-           f=0.01;
-    int GROUND_POS=0;
-    int ARM_CLEAR_BARRIER=50;
-    int LOW_BASKET=300;
-    int HIGH_BASKET=500;
+    double kp = 0.77,
+            ki = 0.000,
+            kd = 0.004,
+            f = 0.01;
+    int GROUND_POS = 0;
+    int ARM_CLEAR_BARRIER = 50;
+    int LOW_BASKET = 300;
+    int HIGH_BASKET = 500;
     double armPosition;
-    PIDController pid1=new PIDController(kp,ki,kd,f);
-    double armPower,armPower1;
+    PIDController pid1 = new PIDController(kp, ki, kd, f);
+    double armPower, armPower1;
 
    /* final double ARM_TICKS_PER_DEGREE =
             28 // Number of encoder ticks per rotation of the bare motor
@@ -55,19 +58,18 @@ public class GM_AutoBL2024 extends LinearOpMode {
     final double LIFT_SCORING_IN_HIGH_BASKET = 700;
 
 
-
-
     //Define and declare Robot Starting Locations
-    public enum START_POSITION{
+    public enum START_POSITION {
         BLUELEFT,
         REDLEFT
     }
-    public static START_POSITION startPosition;
-    DcMotorEx armRotator=null,
-              armRotator2=null,
-              armSlide=null;
-    ServoImplEx wrist=null;
-    CRServoImplEx intake=null;
+
+    public static org.firstinspires.ftc.teamcode.GM_AutoBL2024.START_POSITION startPosition;
+    DcMotorEx armRotator = null,
+            armRotator2 = null,
+            armSlide = null;
+    ServoImplEx wrist = null;
+    CRServoImplEx intake = null;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -90,24 +92,24 @@ public class GM_AutoBL2024 extends LinearOpMode {
         armSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         armSlide.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        wrist=hardwareMap.get(ServoImplEx.class,"wrist");
-       // wristUp();
-        intake=hardwareMap.get(CRServoImplEx.class,"intake");
+        wrist = hardwareMap.get(ServoImplEx.class, "wrist");
+        // wristUp();
+        intake = hardwareMap.get(CRServoImplEx.class, "intake");
 
-        while(!isStopRequested()){
+        while (!isStopRequested()) {
             telemetry.addData("Initializing FTC Wires (ftcwires.org) Autonomous adopted for Team:",
                     TEAM_NAME, " ", TEAM_NUMBER);
-            telemetry.addData("---------------------------------------","");
-            telemetry.addData("Select Starting Position using XYAB on Logitech (or ▢ΔOX on Playstayion) on gamepad 1:","");
+            telemetry.addData("---------------------------------------", "");
+            telemetry.addData("Select Starting Position using XYAB on Logitech (or ▢ΔOX on Playstayion) on gamepad 1:", "");
             telemetry.addData("    Left   ", "(X / ▢)");
             telemetry.addData("    Right ", "(Y / Δ)");
 
-            if(gamepad1.x){
-                startPosition = START_POSITION.BLUELEFT; //Blue Left
+            if (gamepad1.x) {
+                startPosition = org.firstinspires.ftc.teamcode.GM_AutoBL2024.START_POSITION.BLUELEFT; //Blue Left
                 break;
             }
-            if(gamepad1.y){
-                startPosition = START_POSITION.REDLEFT; //Red
+            if (gamepad1.y) {
+                startPosition = org.firstinspires.ftc.teamcode.GM_AutoBL2024.START_POSITION.REDLEFT; //Red
                 break;
             }
             telemetry.update();
@@ -129,32 +131,38 @@ public class GM_AutoBL2024 extends LinearOpMode {
 
 
     }// end runOpMode()
+
     public void moveArm(double position) {
-        armPower=pid1.update(position,armRotator.getCurrentPosition(),15);
-        armPower1=pid1.update(position,armRotator2.getCurrentPosition(),15);
+        armPower = pid1.update(position, armRotator.getCurrentPosition(), 15);
+        armPower1 = pid1.update(position, armRotator2.getCurrentPosition(), 15);
         armRotator.setPower(armPower);
         armRotator2.setPower(armPower);
-        armPosition=position;
+        armPosition = position;
 
     }
-    public void wristUp(){
-        wrist.setPwmRange(new PwmControl.PwmRange(500,2500));
+
+    public void wristUp() {
+        wrist.setPwmRange(new PwmControl.PwmRange(500, 2500));
         wrist.setPosition(0.5);
 
     }
-    public void wristDown(){
-       wrist.setPwmRange(new PwmControl.PwmRange(500,2500));
-       wrist.setPosition(1.0);
+
+    public void wristDown() {
+        wrist.setPwmRange(new PwmControl.PwmRange(500, 2500));
+        wrist.setPosition(1.0);
 
     }
-    public void intakeF(){
+
+    public void intakeF() {
         intake.setPower(0.5);
     }
-    public void intakeR(){
+
+    public void intakeR() {
         intake.setPower(-0.5);
     }
-    public void slideUp(double uposition){
-        armSlide.setTargetPosition((int)uposition);
+
+    public void slideUp(double uposition) {
+        armSlide.setTargetPosition((int) uposition);
         armSlide.setPower(0.7);
         armSlide.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
     }
@@ -162,44 +170,40 @@ public class GM_AutoBL2024 extends LinearOpMode {
     public void runAutonoumousMode() {
         //Auto Blue Left Positions - Samples
         Pose2d initPose = new Pose2d(31.2, 61.7, Math.toRadians(0)); // Starting Pose
-        Pose2d submersibleSpecimen = new Pose2d(28,-1,Math.toRadians(0) );
-        Pose2d netZone = new Pose2d(49 ,53,Math.toRadians(0));
-       Pose2d yellowSampleOne = new Pose2d(45,57,Math.toRadians(256));
-      /*  Pose2d yellowSampleTwo = new Pose2d(46,51,Math.toRadians(273));
-        Pose2d preSubmersiblePark = new Pose2d(24.2,11,Math.toRadians(0));
-        Pose2d submersiblePark = new Pose2d(24.2,9.1,Math.toRadians(0));*/
-
-        //Auto Red Left Positions -Samples
-        Pose2d redinitPose= new Pose2d(-31.2,-61.7,Math.toRadians(270));// Starting Pose for Red Left
-        Pose2d rednetzone = new Pose2d(-58,-53,Math.toRadians(225));
-        Pose2d redyellowone = new Pose2d(-46,-51,Math.toRadians(270));
-        Pose2d redyellowtwo = new Pose2d(-46,-51,Math.toRadians(273));
-        Pose2d colorSampleOne = new Pose2d(-24.2,-11,Math.toRadians(0));
-        Pose2d observationPark = new Pose2d(-24.2,-9.1,Math.toRadians(0));
 
         double waitSecondsBeforeDrop = 0;
         PinpointDrive drive = new PinpointDrive(hardwareMap, initPose);
 
-        if (startPosition == START_POSITION.BLUELEFT) {
+        if (startPosition == org.firstinspires.ftc.teamcode.GM_AutoBL2024.START_POSITION.BLUELEFT) {
 
             //Move robot to netZone with preloaded sample ready to drop in basket
             Actions.runBlocking(
                     drive.actionBuilder(initPose)
-                            .strafeToLinearHeading(netZone.position, netZone.heading)
+
+                            .splineToConstantHeading(new Vector2d(55, 55), Math.toRadians(0))
+                            .waitSeconds(0.4)
+                            .splineToLinearHeading(new Pose2d(35, 12, 0), Math.toRadians(270))
+                            .splineToConstantHeading(new Vector2d(38, 12), Math.toRadians(0))
+                            .splineToLinearHeading(new Pose2d(55, 55, 0), Math.toRadians(0))
+                            .waitSeconds(.4)
+                            .splineToLinearHeading(new Pose2d(48, 12, 0), Math.toRadians(0))
+                            .splineToConstantHeading(new Vector2d(50, 12), Math.toRadians(0))
+                            .splineToLinearHeading(new Pose2d(57, 55, 0), Math.toRadians(0))
+                            .waitSeconds(.4)
+                            .splineToLinearHeading(new Pose2d(34, -5, 0), Math.toRadians(0))
 
 
-
-                                    .build());
-            safeWaitSeconds(1);
+                            .build());
+        /*    safeWaitSeconds(1);
             telemetry.addLine("Move robot to netZone");
             telemetry.update();
             //Add code to drop sample in basket
-           //moveArm(LOW_BASKET);
-          //  slideUp(LIFT_SCORING_IN_LOW_BASKET);
-           wristDown();
+            //moveArm(LOW_BASKET);
+            //  slideUp(LIFT_SCORING_IN_LOW_BASKET);
+            wristDown();
             intakeF();
             intakeR();
-            safeWaitSeconds(3);
+            safeWaitSeconds(3);*/
 
         /*    safeWaitSeconds(2);
             slideUp(LIFT_COLLAPSED);
@@ -208,7 +212,7 @@ public class GM_AutoBL2024 extends LinearOpMode {
             telemetry.update();*/
 
             //Move robot to pick yellow sample one
-            Actions.runBlocking(
+           /* Actions.runBlocking(
                     drive.actionBuilder(netZone)
                             .strafeToLinearHeading(yellowSampleOne.position, yellowSampleOne.heading)
 
@@ -302,9 +306,9 @@ public class GM_AutoBL2024 extends LinearOpMode {
             slideUp(LIFT_COLLAPSED);*/
 
 
-        } else { // REDLEFT
-            //Move robot to netZone with preloaded sample ready to drop in basket
-            Actions.runBlocking(
+        } //else { // REDLEFT
+        //Move robot to netZone with preloaded sample ready to drop in basket
+           /* Actions.runBlocking(
                     drive.actionBuilder(redinitPose)
                             .strafeToLinearHeading(rednetzone.position, rednetzone.heading)
                             .build());
@@ -417,15 +421,15 @@ public class GM_AutoBL2024 extends LinearOpMode {
         }
 
 
-        }
+    }*/
 
-    //method to wait safely with stop button working if needed. Use this instead of sleep
-    public void safeWaitSeconds(double time) {
+        //method to wait safely with stop button working if needed. Use this instead of sleep
+   /* public void safeWaitSeconds(double time) {
         ElapsedTime timer = new ElapsedTime(SECONDS);
         timer.reset();
         while (!isStopRequested() && timer.time() < time) {
         }
-    }
-}   // end class
+    }*/
+    }   // end class
 
-
+}
