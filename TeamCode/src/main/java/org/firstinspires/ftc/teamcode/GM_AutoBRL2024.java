@@ -37,6 +37,8 @@ public class GM_AutoBRL2024 extends LinearOpMode {
     double armPosition;
     PIDController pid1 = new PIDController(kp, ki, kd, f);
     double armPower, armPower1;
+    double time = 0;
+
 
    /* final double ARM_TICKS_PER_DEGREE =
             28 // Number of encoder ticks per rotation of the bare motor
@@ -64,7 +66,7 @@ public class GM_AutoBRL2024 extends LinearOpMode {
         REDLEFT
     }
 
-    public static org.firstinspires.ftc.teamcode.GM_AutoBL2024.START_POSITION startPosition;
+    public static GM_AutoBL2024.START_POSITION startPosition;
     DcMotorEx armRotator = null,
             armRotator2 = null,
             armSlide = null;
@@ -105,11 +107,11 @@ public class GM_AutoBRL2024 extends LinearOpMode {
             telemetry.addData("    Right ", "(Y / Δ)");
 
             if (gamepad1.x) {
-                startPosition = org.firstinspires.ftc.teamcode.GM_AutoBL2024.START_POSITION.BLUELEFT; //Blue Left
+                startPosition = GM_AutoBL2024.START_POSITION.BLUELEFT; //Blue Left
                 break;
             }
             if (gamepad1.y) {
-                startPosition = org.firstinspires.ftc.teamcode.GM_AutoBL2024.START_POSITION.REDLEFT; //Red
+                startPosition = GM_AutoBL2024.START_POSITION.REDLEFT; //Red
                 break;
             }
             telemetry.update();
@@ -174,9 +176,10 @@ public class GM_AutoBRL2024 extends LinearOpMode {
         double waitSecondsBeforeDrop = 0;
         PinpointDrive drive = new PinpointDrive(hardwareMap, initPose);
 
-        if (startPosition == org.firstinspires.ftc.teamcode.GM_AutoBL2024.START_POSITION.BLUELEFT) {
+        if (startPosition == GM_AutoBL2024.START_POSITION.BLUELEFT) {
 
             //Move robot to netZone with preloaded sample ready to drop in basket
+
             Actions.runBlocking(
                     drive.actionBuilder(initPose)
 
@@ -194,6 +197,8 @@ public class GM_AutoBRL2024 extends LinearOpMode {
 
 
                             .build());
+        }
+
         /*    safeWaitSeconds(1);
             telemetry.addLine("Move robot to netZone");
             telemetry.update();
@@ -211,7 +216,7 @@ public class GM_AutoBRL2024 extends LinearOpMode {
             telemetry.addLine("Drop sample in basket");
             telemetry.update();*/
 
-            //Move robot to pick yellow sample one
+        //Move robot to pick yellow sample one
            /* Actions.runBlocking(
                     drive.actionBuilder(netZone)
                             .strafeToLinearHeading(yellowSampleOne.position, yellowSampleOne.heading)
@@ -306,9 +311,9 @@ public class GM_AutoBRL2024 extends LinearOpMode {
             slideUp(LIFT_COLLAPSED);*/
 
 
-        } //else { // REDLEFT
-        //Move robot to netZone with preloaded sample ready to drop in basket
-           /* Actions.runBlocking(
+        //else { // REDLEFT
+        // Move robot to netZone with preloaded sample ready to drop in basket
+          /*  Actions.runBlocking(
                     drive.actionBuilder(redinitPose)
                             .strafeToLinearHeading(rednetzone.position, rednetzone.heading)
                             .build());
@@ -418,18 +423,18 @@ public class GM_AutoBRL2024 extends LinearOpMode {
             moveArm(ARM_CLEAR_BARRIER);
             slideUp(LIFT_COLLAPSED);
 
-        }
+        }*/
 
 
-    }*/
-
-        //method to wait safely with stop button working if needed. Use this instead of sleep
-   /* public void safeWaitSeconds(double time) {
+    }
+   // method to wait safely with stop button working if needed. Use this instead of sleep
+    public void safeWaitSeconds(double time) {
         ElapsedTime timer = new ElapsedTime(SECONDS);
         timer.reset();
         while (!isStopRequested() && timer.time() < time) {
         }
-    }*/
-    }   // end class
+    }
 
-}
+    }  // end class
+
+
