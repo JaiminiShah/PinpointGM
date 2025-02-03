@@ -1,7 +1,12 @@
 package org.firstinspires.ftc.teamcode;
 import static com.qualcomm.robotcore.util.ElapsedTime.Resolution.SECONDS;
 
+import androidx.annotation.NonNull;
+
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.SleepAction;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -11,6 +16,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorImplEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -26,8 +32,8 @@ import org.firstinspires.ftc.teamcode.PinpointDrive;
 public class GM_AutoBRL2024 extends LinearOpMode {
     public static String TEAM_NAME = "GreenMachine"; //TODO: Enter team Name
     public static int TEAM_NUMBER = 8791; //TODO: Enter team Number
-    double kp = 0.77,
-            ki = 0.000,
+   /* double kp = 0.77,
+            ki = 0.003,
             kd = 0.004,
             f = 0.01;
     int GROUND_POS = 0;
@@ -35,9 +41,60 @@ public class GM_AutoBRL2024 extends LinearOpMode {
     int LOW_BASKET = 300;
     int HIGH_BASKET = 500;
     double armPosition;
-    PIDController pid1 = new PIDController(kp, ki, kd, f);
+    PIDController pid1 = new PIDController(kp, ki, kd);
     double armPower, armPower1;
-    double time = 0;
+    double time = 0;*/
+   public class Arm {
+       DcMotorEx armRotator=null,
+               armRotator2=null;
+
+
+
+       public Arm(HardwareMap hardwareMap) {
+           armRotator = hardwareMap.get(DcMotorEx.class, "armRotator");
+           armRotator.setDirection(DcMotor.Direction.REVERSE);
+           armRotator.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+           armRotator.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+
+           armRotator2 = hardwareMap.get(DcMotorEx.class, "armRotator2");
+           armRotator2.setDirection(DcMotor.Direction.FORWARD);
+           armRotator2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+           armRotator2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+       }
+
+       public class MoveArm implements Action {
+           int targetPosition;
+           private boolean initialized = false;
+
+           public MoveArm(int targetPosition) {
+               this.targetPosition = targetPosition;
+               new SleepAction(1);
+
+           }
+
+           @Override
+           public boolean run(@NonNull TelemetryPacket packet) {
+
+               armRotator.setTargetPosition(targetPosition);
+               armRotator.setPower(0.7);
+               armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+               armRotator2.setTargetPosition(targetPosition);
+               armRotator2.setPower(0.7);
+               armRotator2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+               packet.put("Arm1 Position", armRotator.getCurrentPosition());
+               packet.put("Arm2 Position", armRotator2.getCurrentPosition());
+               return true;
+
+           }
+       }
+
+       public Action moveToPosition(int position) {
+
+           return new MoveArm(position);
+       }
+   }
 
 
    /* final double ARM_TICKS_PER_DEGREE =
@@ -78,7 +135,7 @@ public class GM_AutoBRL2024 extends LinearOpMode {
         //Key Pad input to selecting Starting Position of robot
         telemetry.setAutoClear(true);
         telemetry.clearAll();
-        armRotator = hardwareMap.get(DcMotorEx.class, "armRotator");
+      /*  armRotator = hardwareMap.get(DcMotorEx.class, "armRotator");
         armRotator.setDirection(DcMotor.Direction.REVERSE);
         armRotator.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         armRotator.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -87,7 +144,9 @@ public class GM_AutoBRL2024 extends LinearOpMode {
         armRotator2 = hardwareMap.get(DcMotorEx.class, "armRotator2");
         armRotator2.setDirection(DcMotor.Direction.FORWARD);
         armRotator2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        armRotator2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        armRotator2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);*/
+        Arm arm1=new Arm(hardwareMap);
+
 
         armSlide = hardwareMap.get(DcMotorEx.class, "armSlide");
         armSlide.setDirection(DcMotor.Direction.REVERSE);
@@ -134,14 +193,14 @@ public class GM_AutoBRL2024 extends LinearOpMode {
 
     }// end runOpMode()
 
-    public void moveArm(double position) {
+   /* public void moveArm(double position) {
         armPower = pid1.update(position, armRotator.getCurrentPosition(), 15);
         armPower1 = pid1.update(position, armRotator2.getCurrentPosition(), 15);
         armRotator.setPower(armPower);
         armRotator2.setPower(armPower);
         armPosition = position;
 
-    }
+    }*/
 
     public void wristUp() {
         wrist.setPwmRange(new PwmControl.PwmRange(500, 2500));
@@ -171,32 +230,59 @@ public class GM_AutoBRL2024 extends LinearOpMode {
 
     public void runAutonoumousMode() {
         //Auto Blue Left Positions - Samples
-        Pose2d initPose = new Pose2d(31.2, 61.7, Math.toRadians(0)); // Starting Pose
-
+        Pose2d initPose = new Pose2d(-31.2, -61.7, Math.toRadians(0)); // Starting Pose
+        Pose2d netZone = new Pose2d(60 ,61,Math.toRadians(0));
         double waitSecondsBeforeDrop = 0;
         PinpointDrive drive = new PinpointDrive(hardwareMap, initPose);
 
         if (startPosition == GM_AutoBL2024.START_POSITION.BLUELEFT) {
 
             //Move robot to netZone with preloaded sample ready to drop in basket
-
-            Actions.runBlocking(
+           // arm1.moveToPosition((int)70);
+         /*   Actions.runBlocking(
                     drive.actionBuilder(initPose)
 
-                            .splineToConstantHeading(new Vector2d(55, 55), Math.toRadians(0))
+                            .splineToConstantHeading(new Vector2d(-55, -55), Math.toRadians(0))
                             .waitSeconds(0.4)
-                            .splineToLinearHeading(new Pose2d(35, 12, 0), Math.toRadians(270))
-                            .splineToConstantHeading(new Vector2d(38, 12), Math.toRadians(0))
-                            .splineToLinearHeading(new Pose2d(55, 55, 0), Math.toRadians(0))
+                            .splineToLinearHeading(new Pose2d(-35, -12, 0), Math.toRadians(270))
+                            .splineToConstantHeading(new Vector2d(-38, -12), Math.toRadians(0))
+                            .splineToLinearHeading(new Pose2d(-55, -55, 0), Math.toRadians(0))
                             .waitSeconds(.4)
-                            .splineToLinearHeading(new Pose2d(48, 12, 0), Math.toRadians(0))
-                            .splineToConstantHeading(new Vector2d(50, 12), Math.toRadians(0))
-                            .splineToLinearHeading(new Pose2d(57, 55, 0), Math.toRadians(0))
+                            .splineToLinearHeading(new Pose2d(-48, -12, 0), Math.toRadians(0))
+                            .splineToConstantHeading(new Vector2d(-50, -12), Math.toRadians(0))
+                            .splineToLinearHeading(new Pose2d(-57, -55, 0), Math.toRadians(0))
                             .waitSeconds(.4)
-                            .splineToLinearHeading(new Pose2d(34, -5, 0), Math.toRadians(0))
+                            .splineToLinearHeading(new Pose2d(-34, 5, 0), Math.toRadians(0))
 
 
+                            .build());*/
+            Actions.runBlocking(drive.actionBuilder(initPose)
+                    .strafeToLinearHeading(new Vector2d(60, 61), Math.toRadians(0))
+                    // .setReversed(false)
+                    .waitSeconds(1)
                             .build());
+                    wristDown();
+                    intakeR();
+            Actions.runBlocking(drive.actionBuilder(netZone)
+                    .splineTo(new Vector2d(38,61),Math.toRadians(0))
+                    .splineTo(new Vector2d(38,12),Math.toRadians(0))
+                    .splineToLinearHeading(new Pose2d(43, 12, Math.toRadians(0)), Math.toRadians(0))
+                    .strafeToLinearHeading(new Vector2d(60,61),Math.toRadians(0))
+                    .waitSeconds(1)
+                    .splineTo(new Vector2d(48,61),Math.toRadians(0))
+                    .splineTo(new Vector2d(48,12),Math.toRadians(0))
+                    .splineToLinearHeading(new Pose2d(57, 12, Math.toRadians(0)), Math.toRadians(0))
+                    .strafeToLinearHeading(new Vector2d(60,61),Math.toRadians(0))
+                    .waitSeconds(1)
+                    .splineTo(new Vector2d(58,61),Math.toRadians(0))
+                    .splineTo(new Vector2d(65,12),Math.toRadians(0))
+                    .strafeToLinearHeading(new Vector2d(63,61),Math.toRadians(0))
+                    .waitSeconds(1)
+                    .strafeToLinearHeading(new Vector2d(27,4.6),Math.toRadians(0))
+
+                    .build());
+
+
         }
 
         /*    safeWaitSeconds(1);

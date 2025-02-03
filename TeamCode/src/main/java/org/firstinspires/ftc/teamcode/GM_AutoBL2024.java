@@ -5,6 +5,7 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.CRServoImplEx;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -14,11 +15,12 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.arcrobotics.ftclib.controller.PIDFController;
 
 
 //import org.firstinspires.ftc.teamcode.PIDCoefficients;
 
-
+@Disabled
 @Autonomous(name = "GM_AutoBL2024", group = "00-Autonomous", preselectTeleOp = "FTC Wires TeleOp")
 public class GM_AutoBL2024 extends LinearOpMode {
     public static String TEAM_NAME = "GreenMachine"; //TODO: Enter team Name
@@ -33,6 +35,7 @@ public class GM_AutoBL2024 extends LinearOpMode {
     int HIGH_BASKET=500;
     double armPosition;
     PIDController pid1=new PIDController(kp,ki,kd,f);
+
     double armPower,armPower1;
 
    /* final double ARM_TICKS_PER_DEGREE =
@@ -99,8 +102,8 @@ public class GM_AutoBL2024 extends LinearOpMode {
                     TEAM_NAME, " ", TEAM_NUMBER);
             telemetry.addData("---------------------------------------","");
             telemetry.addData("Select Starting Position using XYAB on Logitech (or ▢ΔOX on Playstayion) on gamepad 1:","");
-            telemetry.addData("    Left   ", "(X / ▢)");
-            telemetry.addData("    Right ", "(Y / Δ)");
+            telemetry.addData("   Blue Left   ", "(X / ▢)");
+            telemetry.addData("   Red Left ", "(Y / Δ)");
 
             if(gamepad1.x){
                 startPosition = START_POSITION.BLUELEFT; //Blue Left
@@ -138,12 +141,12 @@ public class GM_AutoBL2024 extends LinearOpMode {
 
     }
     public void wristUp(){
-        wrist.setPwmRange(new PwmControl.PwmRange(500,2500));
+       // wrist.setPwmRange(new PwmControl.PwmRange(500,2500));
         wrist.setPosition(0.5);
 
     }
     public void wristDown(){
-       wrist.setPwmRange(new PwmControl.PwmRange(500,2500));
+     //  wrist.setPwmRange(new PwmControl.PwmRange(500,2500));
        wrist.setPosition(1.0);
 
     }
@@ -185,7 +188,7 @@ public class GM_AutoBL2024 extends LinearOpMode {
             //Move robot to netZone with preloaded sample ready to drop in basket
             Actions.runBlocking(
                     drive.actionBuilder(initPose)
-                            .strafeToLinearHeading(netZone.position, netZone.heading)
+                            .splineToConstantHeading(new Vector2d(55, 55), Math.toRadians(0))
 
 
 
@@ -208,7 +211,7 @@ public class GM_AutoBL2024 extends LinearOpMode {
             telemetry.update();*/
 
             //Move robot to pick yellow sample one
-            Actions.runBlocking(
+           /* Actions.runBlocking(
                     drive.actionBuilder(netZone)
                             .strafeToLinearHeading(yellowSampleOne.position, yellowSampleOne.heading)
 
@@ -216,7 +219,7 @@ public class GM_AutoBL2024 extends LinearOpMode {
                             .build());
             safeWaitSeconds(1);
             telemetry.addLine("Move robot to pick yellow sample one");
-            telemetry.update();
+            telemetry.update();*/
             //Add code to pick up yellow sample
          /*   moveArm(ARM_CLEAR_BARRIER);
             slideUp(LIFT_SCORING_IN_LOW_BASKET);

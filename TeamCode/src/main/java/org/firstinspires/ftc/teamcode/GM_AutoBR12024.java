@@ -41,8 +41,8 @@ public class GM_AutoBR12024 extends LinearOpMode {
                     TEAM_NAME, " ", TEAM_NUMBER);
             telemetry.addData("---------------------------------------","");
             telemetry.addData("Select Starting Position using XYAB on Logitech (or ▢ΔOX on Playstayion) on gamepad 1:","");
-            telemetry.addData("    Left   ", "(X / ▢)");
-            telemetry.addData("    Right ", "(Y / Δ)");
+            telemetry.addData("    Blue Right   ", "(X / ▢)");
+            telemetry.addData("    Red Right ", "(Y / Δ)");
 
             if(gamepad1.x){
                 startPosition = START_POSITION.BLUERIGHT; //Blue Left
