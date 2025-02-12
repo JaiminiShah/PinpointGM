@@ -27,9 +27,9 @@ import com.arcrobotics.ftclib.controller.PIDController;
 import java.util.Vector;
 
 
-@Autonomous(name = "GM_AutoLeft2024", group = "exercises")
+@Autonomous(name = "GM_Auto1", group = "exercises")
 
-public class GM_AutoLeft2024 extends LinearOpMode {
+public class GM_Auto1 extends LinearOpMode {
     DcMotorEx armRotator = null,
             armRotator2 = null,
             armSlide = null;
@@ -120,38 +120,44 @@ public class GM_AutoLeft2024 extends LinearOpMode {
         PinpointDrive drive = new PinpointDrive(hardwareMap, initPose);
         if (startPosition == START_POSITION.BLUELEFT) {
             TrajectoryActionBuilder dropoffPreload=drive.actionBuilder(initPose)
-                            .splineToConstantHeading(new Vector2d(53,52),Math.toRadians(0))
-                                    .waitSeconds(0.01);
+                    .splineToConstantHeading(new Vector2d(53,52),Math.toRadians(0))
+                    .waitSeconds(0.01);
             TrajectoryActionBuilder toFirstSample = drive.actionBuilder(new Pose2d(53,52,Math.toRadians(0)))
-                    .splineTo(new Vector2d(48.1,38.5),Math.toRadians(90))
+                    .setTangent(Math.toRadians(224.65))
+                    .splineToSplineHeading(new Pose2d(36, 25,0), Math.toRadians(270))
                     .waitSeconds(.1);
             TrajectoryActionBuilder dropOffFirst = drive.actionBuilder(new Pose2d(48.1,38.5,Math.toRadians(90)))
-                    .setReversed(true)
-                    .splineTo(new Vector2d(52,53),Math.toRadians(229.5))
+                    .setTangent(Math.toRadians(90))
+                    .splineToSplineHeading(new Pose2d(59, 59,0), Math.toRadians(45))
                     .waitSeconds(.2);
+            // Move to second sample while resetting output box and retracting slides
             TrajectoryActionBuilder toSecondSample = drive.actionBuilder(new Pose2d(52,53,Math.toRadians(49.5)))
-                    .setReversed(false)
-                    .splineToLinearHeading(new Pose2d(64,40.5,Math.toRadians(99)),Math.toRadians(107))
+                    .setTangent(Math.toRadians(225))
+                    .splineToSplineHeading(new Pose2d(46, 25, 0),Math.toRadians(270))
                     .waitSeconds(.1);
+            // Move to basket the third time and deposit second sample
             TrajectoryActionBuilder dropOffSecond = drive.actionBuilder(new Pose2d(64,40.5,Math.toRadians(99)))
-                    .setReversed(true)
-                    .splineToLinearHeading(new Pose2d(57,49.5,Math.toRadians(48)),Math.toRadians(232))
-                    .waitSeconds(.2);
-            TrajectoryActionBuilder toThirdSample = drive.actionBuilder(new Pose2d(57,49.5,Math.toRadians(48)))
-                    .setReversed(false)
-                    .splineToLinearHeading(new Pose2d(63.2,41.5, Math.toRadians(135)), Math.toRadians(55))
+                    .setTangent(90)
+                    .splineToSplineHeading(new Pose2d(59, 59,0),Math.toRadians(45))
                     .waitSeconds(.1);
+            // Move to third sample while resetting output box and retracting slides
+            TrajectoryActionBuilder toThirdSample = drive.actionBuilder(new Pose2d(57,49.5,Math.toRadians(48)))
+                    .setTangent(225)
+                    .splineToSplineHeading(new Pose2d(56, 25, 0),Math.toRadians(270))
+                    .waitSeconds(.1);
+            // Move to basket the fourth time and deposit third sample
             TrajectoryActionBuilder dropOffThird = drive.actionBuilder(new Pose2d(63.2,41.5,Math.toRadians(135)))
-                    .setReversed(true)
-                    .splineToLinearHeading(new Pose2d(59,48.5,Math.toRadians(48)), Math.toRadians(230))
+                    .setTangent(90)
+                    .splineToSplineHeading(new Pose2d(59, 59,0), Math.toRadians(45))
                     .waitSeconds(.2);
+            //Park
             TrajectoryActionBuilder park = drive.actionBuilder(new Pose2d(60,48.5,Math.toRadians(48)))
                     .setReversed(false)
                     .splineTo(new Vector2d(30,11),Math.toRadians(0))
                     .waitSeconds(.1);
 
 
-              // Initialization
+            // Initialization
             Actions.runBlocking(
                     new SequentialAction(
 
@@ -161,18 +167,18 @@ public class GM_AutoLeft2024 extends LinearOpMode {
             Actions.runBlocking(
                     new ParallelAction(
                             arm1.UpdatePID(),
-                    new SequentialAction(
-                            arm1.moveToPosition(LOW_BASKET),
-                            moveSlide(700),
-                            dropoffPreload.build()
-                          //  new ParallelAction(
-                           // wristDown(),
-                           // intakeEject())
+                            new SequentialAction(
+                                    arm1.moveToPosition(LOW_BASKET),
+                                    moveSlide(700),
+                                    dropoffPreload.build()
+                                    //  new ParallelAction(
+                                    // wristDown(),
+                                    // intakeEject())
 
 
-                    )
+                            )
 
-            ));
+                    ));
 
         }
     }
@@ -228,18 +234,18 @@ public class GM_AutoLeft2024 extends LinearOpMode {
             return new MoveArm();
         }
         public Action moveToPosition(int position) {
-           // return new MoveArm(position);
+            // return new MoveArm(position);
             return new InstantAction(()->armTarget=position);
         }
     }
     public class moveSlide implements Action{
-          int targetSlide;
-          public moveSlide(int targetSlide){
-              this.targetSlide=targetSlide;
-          }
+        int targetSlide;
+        public moveSlide(int targetSlide){
+            this.targetSlide=targetSlide;
+        }
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
-              slidepos=targetSlide;
+            slidepos=targetSlide;
             armSlide.setTargetPosition(targetSlide);
             armSlide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             armSlide.setPower(0.7);
@@ -255,11 +261,11 @@ public class GM_AutoLeft2024 extends LinearOpMode {
     public Action wristDown(){
         return new InstantAction(()->wrist.setPosition(0.3));
     }
-   public Action intakeGrab(){
+    public Action intakeGrab(){
         return new InstantAction(()->intake.setPower(0.5));
-   }
-   public Action intakeEject(){
+    }
+    public Action intakeEject(){
         return new InstantAction(()->intake.setPower(-0.5));
-   }
+    }
 
 }
