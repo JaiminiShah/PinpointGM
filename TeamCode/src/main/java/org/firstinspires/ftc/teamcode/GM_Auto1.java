@@ -168,6 +168,7 @@ public class GM_Auto1 extends LinearOpMode {
                     new ParallelAction(
                             arm1.UpdatePID(),
                             new SequentialAction(
+
                                     arm1.moveToPosition(LOW_BASKET),
                                     moveSlide(700),
                                     dropoffPreload.build()
@@ -188,13 +189,13 @@ public class GM_Auto1 extends LinearOpMode {
 
         public Arm(HardwareMap hardwareMap) {
             armRotator = hardwareMap.get(DcMotorEx.class, "armRotator");
-            armRotator.setDirection(DcMotor.Direction.REVERSE);
+            armRotator.setDirection(DcMotor.Direction.FORWARD);
             armRotator.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
             armRotator.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
 
             armRotator2 = hardwareMap.get(DcMotorEx.class, "armRotator2");
-            armRotator2.setDirection(DcMotor.Direction.FORWARD);
+            armRotator2.setDirection(DcMotor.Direction.REVERSE);
             armRotator2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
             armRotator2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
@@ -212,6 +213,7 @@ public class GM_Auto1 extends LinearOpMode {
 
             @Override
             public boolean run(@NonNull TelemetryPacket packet) {
+
                 pid1.setPID(kp,ki,kd);
                 int armpos1 = armRotator.getCurrentPosition();
                 int armpos2 = armRotator2.getCurrentPosition();

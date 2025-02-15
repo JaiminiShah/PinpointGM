@@ -23,6 +23,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.arcrobotics.ftclib.controller.PIDController;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import java.util.Vector;
 
@@ -195,17 +196,49 @@ public class GM_AutoLeft2024 extends LinearOpMode {
 
         public class MoveArm implements Action {
             int targetPosition;
-
+            private ElapsedTime timer = new ElapsedTime();
             private boolean initialized = false;
-
+            private double integralSum = 0;
+            private double lastError = 0;
          /*   public MoveArm(int targetPosition) {
                 this.targetPosition = targetPosition;
                 new SleepAction(1);
 
             }*/
-
             @Override
             public boolean run(@NonNull TelemetryPacket packet) {
+                double error=armTarget-armRotator.getCurrentPosition();
+                double deltaTime=timer.seconds();
+                int tolerance=15;
+                //Check if error is within tolerance
+                if (Math.abs(error) < tolerance){
+                    integralSum=0;
+                    lastError=error;
+                    timer.reset();
+                    return false;
+                }
+                // Proportional term
+                double pTerm = kp * error;
+
+                // Integral term (accumulate error over time)
+                integralSum += error * deltaTime;
+                double iTerm = ki * integralSum;
+
+                // Derivative term (rate of change of error)
+                double derivative = (error - lastError) / deltaTime;
+                double dTerm = kd * derivative;
+                double ff=Math.cos(Math.toRadians(armTarget/ticks_in_degree))*f;
+
+                // PID output
+                double output = pTerm + iTerm + dTerm +ff ;
+                //double output1=pTerm+iTerm+dTerm;
+
+                // Update last error and reset timer for next iteration
+                lastError = error;
+                timer.reset(); // Reset timer after each update
+
+                return true;
+                /*
                 pid1.setPID(kp,ki,kd);
                 int armpos1 = armRotator.getCurrentPosition();
                 int armpos2 = armRotator2.getCurrentPosition();
@@ -221,7 +254,7 @@ public class GM_AutoLeft2024 extends LinearOpMode {
                 armRotator2.setPower(armPower1);
                 packet.put("Arm1 Position", armRotator.getCurrentPosition());
                 packet.put("Arm2 Position", armRotator2.getCurrentPosition());
-                return true;
+                return true;*/
             }
         }
         public Action UpdatePID(){
